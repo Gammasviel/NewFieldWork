@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">{{ action }}大模型</h2>
+    
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
+                    <div class="form-text">模型的简称，用于界面展示</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    {{ form.model.label(class="form-label") }}
+                    {{ form.model(class="form-control") }}
+                    <div class="form-text">API调用时使用的模型全称</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            {{ form.base_url.label(class="form-label") }}
+            {{ form.base_url(class="form-control") }}
+            <div class="form-text">API提供商的base_url</div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">API密钥</label>
+            <div id="api-keys-container">
+                {% for key_field in form.api_keys %}
+                <div class="input-group mb-2 api-key-group">
+                    {{ key_field(class="form-control api-key-input") }}
+                    <button type="button" class="btn btn-outline-danger remove-api-key">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" id="add-api-key" class="btn btn-sm btn-outline-secondary mt-2">
+                <i class="bi bi-plus-circle"></i> 添加密钥
+            </button>
+            <div class="form-text">可以添加多个API密钥，系统会自动轮询使用</div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">保存模型</button>
+        <a href="{{ url_for('models.model_management') }}" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('api-keys-container');
+    const addButton = document.getElementById('add-api-key');
+    
+    // 添加API密钥字段
+    addButton.addEventListener('click', function() {
+        const newGroup = document.createElement('div');
+        newGroup.className = 'input-group mb-2 api-key-group';
+        newGroup.innerHTML = `
+            <input type="text" name="api_keys-${container.children.length}" 
+                   class="form-control api-key-input" required>
+            <button type="button" class="btn btn-outline-danger remove-api-key">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        container.appendChild(newGroup);
+    });
+    
+    // 删除API密钥字段
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-api-key')) {
+            const group = e.target.closest('.api-key-group');
+            if (container.children.length > 1) {
+                group.remove();
+            } else {
+                // 如果是最后一个，清空内容但保留字段
+                group.querySelector('.api-key-input').value = '';
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.api-key-group {
+    transition: all 0.3s ease;
+}
+
+.remove-api-key {
+    width: 42px;
+}
+</style>
+{% endblock %}

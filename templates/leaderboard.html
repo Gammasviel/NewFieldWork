@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">模型表现榜单</h2>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">筛选条件</h5>
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">一级维度</label>
+                    <select class="form-select" name="level1" onchange="this.form.submit()">
+                        <option value="">全部</option>
+                        {% for dim in level1_dimensions %}
+                        <option value="{{ dim.id }}" {% if level1_id|int == dim.id %}selected{% endif %}>
+                            {{ dim.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">二级维度</label>
+                    <select class="form-select" name="level2" onchange="this.form.submit()">
+                        <option value="">全部</option>
+                        {% for dim in level2_dimensions %}
+                        <option value="{{ dim.id }}" {% if level2_id|int == dim.id %}selected{% endif %}>
+                            {{ dim.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">三级维度</label>
+                    <select class="form-select" name="level3" onchange="this.form.submit()">
+                        <option value="">全部</option>
+                        {% for dim in level3_dimensions %}
+                        <option value="{{ dim.id }}" {% if level3_id|int == dim.id %}selected{% endif %}>
+                            {{ dim.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">模型表现排名</h5>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>模型名称</th>
+                            <th>平均得分</th>
+                            <th>百分比得分</th>
+                            <th>评估题目数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in leaderboard %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ item.model_name }}</td>
+                            <td>{{ "%.2f" | format(item.avg_score) }}</td>
+                            <td>{{ "%.1f" | format(item.avg_score / item.avg_total * 100) }}%</td>
+                            <td>{{ question_count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">暂无数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 维度联动
+    document.querySelector('select[name="level1"]').addEventListener('change', function() {
+        const level1Id = this.value;
+        const level2Select = document.querySelector('select[name="level2"]');
+        const level3Select = document.querySelector('select[name="level3"]');
+        
+        // 重置下级选择
+        level2Select.innerHTML = '<option value="">全部</option>';
+        level3Select.innerHTML = '<option value="">全部</option>';
+        
+        if (level1Id) {
+            fetch(`/get_dimensions?level=2&parent=${level1Id}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(dim => {
+                        const option = document.createElement('option');
+                        option.value = dim.id;
+                        option.textContent = dim.name;
+                        level2Select.appendChild(option);
+                    });
+                });
+        }
+    });
+    
+    document.querySelector('select[name="level2"]').addEventListener('change', function() {
+        const level2Id = this.value;
+        const level3Select = document.querySelector('select[name="level3"]');
+        
+        // 重置下级选择
+        level3Select.innerHTML = '<option value="">全部</option>';
+        
+        if (level2Id) {
+            fetch(`/get_dimensions?level=3&parent=${level2Id}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(dim => {
+                        const option = document.createElement('option');
+                        option.value = dim.id;
+                        option.textContent = dim.name;
+                        level3Select.appendChild(option);
+                    });
+                });
+        }
+    });
+});
+</script>
+{% endblock %}

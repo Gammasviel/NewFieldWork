@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">维度管理系统</h2>
+    
+    <!-- 维度添加卡片 -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">添加新维度</h5>
+        </div>
+        <div class="card-body">
+            <!-- 标签页导航 -->
+            <ul class="nav nav-tabs mb-4" id="dimTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="level1-tab" data-bs-toggle="tab" 
+                            data-bs-target="#level1" type="button" role="tab">
+                        添加一级维度
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="level2-tab" data-bs-toggle="tab" 
+                            data-bs-target="#level2" type="button" role="tab">
+                        添加二级维度
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="level3-tab" data-bs-toggle="tab" 
+                            data-bs-target="#level3" type="button" role="tab">
+                        添加三级维度
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- 标签页内容 -->
+            <div class="tab-content" id="dimTabContent">
+                <!-- 一级维度标签页 -->
+                <div class="tab-pane fade show active" id="level1" role="tabpanel">
+                    <form method="POST" class="dim-form">
+                        <input type="hidden" name="action" value="add_dimension">
+                        <input type="hidden" name="dim_level" value="1">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">一级维度名称</label>
+                            <input type="text" class="form-control" name="level1_name" 
+                                   placeholder="输入新的一级维度名称" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> 添加一级维度
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- 二级维度标签页 -->
+                <div class="tab-pane fade" id="level2" role="tabpanel">
+                    <form method="POST" class="dim-form">
+                        <input type="hidden" name="action" value="add_dimension">
+                        <input type="hidden" name="dim_level" value="2">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">所属一级维度</label>
+                                <select class="form-select" name="level1_id" required>
+                                    <option value="" disabled selected>请选择一级维度</option>
+                                    {% for dim in level1_dims %}
+                                    <option value="{{ dim.id }}">{{ dim.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">二级维度名称</label>
+                                <input type="text" class="form-control" name="level2_name" 
+                                       placeholder="输入新的二级维度名称" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-info">
+                            <i class="bi bi-plus-circle"></i> 添加二级维度
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- 三级维度标签页 -->
+                <div class="tab-pane fade" id="level3" role="tabpanel">
+                    <form method="POST" class="dim-form">
+                        <input type="hidden" name="action" value="add_dimension">
+                        <input type="hidden" name="dim_level" value="3">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">所属二级维度</label>
+                                <select class="form-select" name="level2_id" id="level2-select" required>
+                                    <option value="" disabled selected>请选择二级维度</option>
+                                    {% for dim in level2_dims %}
+                                    <option value="{{ dim.id }}" 
+                                            data-parent="{{ dim.parent }}">
+                                        {{ dim.parent_ref.name }} > {{ dim.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">三级维度名称</label>
+                                <input type="text" class="form-control" name="level3_name" 
+                                       placeholder="输入新的三级维度名称" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> 添加三级维度
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 维度列表 -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">维度结构列表</h5>
+                <div class="dim-count">
+                    <span class="badge bg-primary">一级: {{ level1_dims|length }}</span>
+                    <span class="badge bg-info mx-1">二级: {{ level2_dims|length }}</span>
+                    <span class="badge bg-success">三级: {{ level3_dims|length }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if level1_dims %}
+            <div class="dimension-tree">
+                {% for dim1 in level1_dims %}
+                <div class="dim-level1 mb-3">
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2">一级</span>
+                            <strong>{{ dim1.name }}</strong>
+                        </div>
+                        <form method="POST" class="d-inline" onsubmit="return confirm('确定要删除该维度及其所有子维度吗？');">
+                            <input type="hidden" name="action" value="delete_dimension">
+                            <input type="hidden" name="dim_id" value="{{ dim1.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </form>
+                    </div>
+                    
+                    {% set dim1_children = [] %}
+                    {% for dim2 in level2_dims %}
+                        {% if dim2.parent == dim1.id %}
+                            {% set dim1_children = dim1_children.append(dim2) or dim1_children %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if dim1_children %}
+                    <div class="ms-4 mt-2">
+                        {% for dim2 in dim1_children %}
+                        <div class="dim-level2 mb-2">
+                            <div class="d-flex justify-content-between align-items-center p-2 bg-info-subtle rounded">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-info me-2">二级</span>
+                                    {{ dim2.name }}
+                                </div>
+                                <form method="POST" class="d-inline" onsubmit="return confirm('确定要删除该维度及其所有子维度吗？');">
+                                    <input type="hidden" name="action" value="delete_dimension">
+                                    <input type="hidden" name="dim_id" value="{{ dim2.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> 删除
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            {% set dim2_children = [] %}
+                            {% for dim3 in level3_dims %}
+                                {% if dim3.parent == dim2.id %}
+                                    {% set dim2_children = dim2_children.append(dim3) or dim2_children %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if dim2_children %}
+                            <div class="ms-4 mt-2">
+                                {% for dim3 in dim2_children %}
+                                <div class="dim-level3 mb-2">
+                                    <div class="d-flex justify-content-between align-items-center p-2 bg-success-subtle rounded">
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-success me-2">三级</span>
+                                            {{ dim3.name }}
+                                        </div>
+                                        <form method="POST" class="d-inline" onsubmit="return confirm('确定要删除该维度吗？');">
+                                            <input type="hidden" name="action" value="delete_dimension">
+                                            <input type="hidden" name="dim_id" value="{{ dim3.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="ms-4 text-muted small py-2">暂无三级维度</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="ms-4 text-muted small py-2">暂无二级维度</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> 当前没有维度数据，请先添加一级维度
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 三级维度选择框搜索功能
+    const level2Select = document.getElementById('level2-select');
+    if (level2Select) {
+        // 添加搜索功能
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'form-control mb-2';
+        searchInput.placeholder = '搜索二级维度...';
+        level2Select.parentNode.insertBefore(searchInput, level2Select);
+        
+        // 搜索功能实现
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const options = level2Select.querySelectorAll('option');
+            
+            options.forEach(option => {
+                if (option.textContent.toLowerCase().includes(searchTerm)) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // 自动滚动到活动标签页
+    const hash = window.location.hash;
+    if (hash) {
+        const triggerTab = document.querySelector(`[data-bs-target="${hash}"]`);
+        if (triggerTab) {
+            new bootstrap.Tab(triggerTab).show();
+        }
+    }
+});
+</script>
+
+<style>
+.dim-form {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.nav-tabs .nav-link {
+    font-weight: 500;
+    color: #495057;
+    border: none;
+    border-bottom: 3px solid transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    background-color: transparent;
+    border-bottom: 3px solid #0d6efd;
+    font-weight: 600;
+}
+
+.dim-level1, .dim-level2, .dim-level3 {
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+    padding-left: 10px;
+}
+
+.dim-level1 {
+    border-left-color: #0d6efd;
+}
+
+.dim-level2 {
+    border-left-color: #0dcaf0;
+}
+
+.dim-level3 {
+    border-left-color: #198754;
+}
+
+.dim-level1:hover, .dim-level2:hover, .dim-level3:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-left-width: 5px;
+}
+
+.dimension-tree > .dim-level1:not(:last-child) {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.8em;
+}
+</style>
+{% endblock %}

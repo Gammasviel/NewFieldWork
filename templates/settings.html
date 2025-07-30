@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <h2 class="mb-4">评分标准设置</h2>
+        
+        <!-- 评分标准显示区域 - 改为上下布局 -->
+        <div class="mb-4">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span>客观题评分标准</span>
+                    <span class="badge bg-light text-primary">当前标准</span>
+                </div>
+                <div class="card-body">
+                    <pre class="criteria-text">{{ objective_criteria }}</pre>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <span>主观题评分标准</span>
+                    <span class="badge bg-light text-info">当前标准</span>
+                </div>
+                <div class="card-body">
+                    <pre class="criteria-text">{{ subjective_criteria }}</pre>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 编辑表单 -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-4">编辑评分标准</h5>
+                <form method="POST" id="criteria-form">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <label class="form-label mb-0 me-2">选择评分标准类型：</label>
+                            {{ form.question_type(class="form-select w-auto", id="question-type") }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ form.criteria.label(class="form-label mb-2") }}
+                        {{ form.criteria(class="form-control criteria-textarea", rows=18, id="criteria-text") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.total_score.label(class="form-label") }}
+                        <div class="input-group">
+                            {{ form.total_score(class="form-control", id="total-score") }}
+                            <span class="input-group-text">分</span>
+                        </div>
+                        <div class="form-text">设置评分标准的总分值（1-100分）</div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        更改评分标准后，需要重新评估所有问题以应用新标准。
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" id="reset-btn">
+                            <i class="bi bi-arrow-counterclockwise me-2"></i>恢复当前标准
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-2"></i>更新评分标准
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 存储数据库中的评分标准（保留换行符）
+const criteriaData = {
+    objective: `{{ objective_criteria | replace('\r\n', '\n') | replace('\n', '\\n') | safe }}`,
+    subjective: `{{ subjective_criteria | replace('\r\n', '\n') | replace('\n', '\\n') | safe }}`
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const questionTypeSelect = document.getElementById('question-type');
+    const criteriaTextarea = document.getElementById('criteria-text');
+    const resetBtn = document.getElementById('reset-btn');
+    
+    // 初始化表单
+    updateCriteria();
+    
+    // 监听题目类型变化
+    questionTypeSelect.addEventListener('change', updateCriteria);
+    
+    // 恢复当前标准按钮
+    resetBtn.addEventListener('click', function() {
+        if (confirm('确定要恢复当前评分标准吗？所有未保存的修改将丢失。')) {
+            updateCriteria();
+        }
+    });
+    
+    function updateCriteria() {
+        const questionType = questionTypeSelect.value;
+        
+        // 获取数据库中的标准并还原换行符
+        const dbCriteria = criteriaData[questionType].replace(/\\n/g, '\n');
+        
+        // 更新文本区域内容
+        criteriaTextarea.value = dbCriteria;
+        
+        // 更新占位符提示
+        if (questionType === 'objective') {
+            criteriaTextarea.placeholder = "请输入客观题评分标准";
+        } else {
+            criteriaTextarea.placeholder = "请输入主观题评分标准";
+        }
+        totalScoreInput.value = data.total;
+    }
+    
+    // 表单提交前检查是否有修改
+    document.getElementById('criteria-form').addEventListener('submit', function(e) {
+        const currentType = questionTypeSelect.value;
+        const currentValue = criteriaTextarea.value.trim();
+        const originalValue = criteriaData[currentType].replace(/\\n/g, '\n').trim();
+        
+        if (currentValue === originalValue) {
+            if (!confirm('您没有修改评分标准，确定要更新吗？')) {
+                e.preventDefault();
+            }
+        } else {
+            if (!confirm('确定要更新评分标准吗？更改后需要重新评估所有问题。')) {
+                e.preventDefault();
+            }
+        }
+    });
+});
+</script>
+
+<style>
+/* 保留换行符的样式 */
+.criteria-text {
+    white-space: pre-wrap; /* 保留空白符序列，但正常地进行换行 */
+    word-break: break-word; /* 允许在单词内换行 */
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.criteria-textarea {
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.card-header {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+</style>
+{% endblock %}

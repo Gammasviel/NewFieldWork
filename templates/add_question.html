@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <h2 class="mb-4">添加评估题目</h2>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    {{ form.level1.label(class="form-label") }}
+                    {{ form.level1(class="form-select") }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.level2.label(class="form-label") }}
+                    {{ form.level2(class="form-select") }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.level3.label(class="form-label") }}
+                    {{ form.level3(class="form-select") }}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                {{ form.question_type.label(class="form-label") }}
+                {{ form.question_type(class="form-select") }}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.content.label(class="form-label") }}
+                {{ form.content(class="form-control", rows=4) }}
+            </div>
+            
+            <div class="mb-3" id="answer-field">
+                {{ form.answer.label(class="form-label") }}
+                {{ form.answer(class="form-control", rows=3) }}
+            </div>
+            
+            <button type="submit" class="btn btn-primary">添加题目</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionType = document.getElementById('question_type');
+    const answerField = document.getElementById('answer-field');
+    const level1Select = document.getElementById('level1');
+    const level2Select = document.getElementById('level2');
+    const level3Select = document.getElementById('level3');
+    
+    function toggleAnswerField() {
+        if (questionType.value === 'objective') {
+            answerField.style.display = 'block';
+        } else {
+            answerField.style.display = 'none';
+        }
+    }
+    
+    // 初始状态
+    toggleAnswerField();
+    
+    // 监听变化
+    questionType.addEventListener('change', toggleAnswerField);
+    
+    // 维度联动
+    level1Select.addEventListener('change', function() {
+        const level1Id = this.value;
+        if (!level1Id) {
+            level2Select.innerHTML = '<option value="">请先选择一级维度</option>';
+            level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
+            return;
+        }
+        
+        fetch(`/get_dimensions?level=2&parent=${level1Id}`)
+            .then(response => response.json())
+            .then(data => {
+                level2Select.innerHTML = '<option value="">选择二级维度</option>';
+                data.forEach(dim => {
+                    const option = document.createElement('option');
+                    option.value = dim.id;
+                    option.textContent = dim.name;
+                    level2Select.appendChild(option);
+                });
+                // 重置三级维度
+                level3Select.innerHTML = '<option value="">选择三级维度</option>';
+            });
+    });
+    
+    level2Select.addEventListener('change', function() {
+        const level2Id = this.value;
+        if (!level2Id) {
+            level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
+            return;
+        }
+        
+        fetch(`/get_dimensions?level=3&parent=${level2Id}`)
+            .then(response => response.json())
+            .then(data => {
+                level3Select.innerHTML = '<option value="">选择三级维度</option>';
+                data.forEach(dim => {
+                    const option = document.createElement('option');
+                    option.value = dim.id;
+                    option.textContent = dim.name;
+                    level3Select.appendChild(option);
+                });
+            });
+    });
+    
+    // 初始化：如果已有选择，尝试加载相关维度
+    if (level1Select.value) {
+        level1Select.dispatchEvent(new Event('change'));
+    }
+    if (level2Select.value) {
+        level2Select.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}

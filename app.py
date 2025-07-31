@@ -1,12 +1,8 @@
 from flask import Flask
 from models import db, Setting, LLM
-# from routes import register_routes
-# from flask_migrate import Migrate
 from llm import clients
 from config import DEFAULT_CRITERIA
 from routes import dimensions_bp, index_bp, leaderboard_bp, models_bp, questions_bp, settings_bp
-
-from import_datas import import_datas
 
 def create_app():
     app = Flask(__name__)
@@ -23,7 +19,6 @@ def create_app():
     
     with app.app_context():
         db.create_all()
-        # import_datas(app)
         
         clients.create_clients([
             {

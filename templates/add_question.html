@@ -42,77 +42,93 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     const questionType = document.getElementById('question_type');
     const answerField = document.getElementById('answer-field');
     const level1Select = document.getElementById('level1');
     const level2Select = document.getElementById('level2');
     const level3Select = document.getElementById('level3');
     
+    // 从 Jinja2 模板获取后端传来的、已选择的值（用于错误回显）
+    const selectedL2Id = '{{ form.level2.data or "" }}';
+    const selectedL3Id = '{{ form.level3.data or "" }}';
+
     function toggleAnswerField() {
-        if (questionType.value === 'objective') {
-            answerField.style.display = 'block';
-        } else {
-            answerField.style.display = 'none';
-        }
+        answerField.style.display = (questionType.value === 'objective') ? 'block' : 'none';
     }
     
-    // 初始状态
+    // 首次加载时运行
     toggleAnswerField();
     
     // 监听变化
     questionType.addEventListener('change', toggleAnswerField);
     
-    // 维度联动
-    level1Select.addEventListener('change', function() {
-        const level1Id = this.value;
-        if (!level1Id) {
-            level2Select.innerHTML = '<option value="">请先选择一级维度</option>';
-            level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
-            return;
-        }
-        
-        fetch(`/get_dimensions?level=2&parent=${level1Id}`)
-            .then(response => response.json())
-            .then(data => {
-                level2Select.innerHTML = '<option value="">选择二级维度</option>';
-                data.forEach(dim => {
-                    const option = document.createElement('option');
-                    option.value = dim.id;
-                    option.textContent = dim.name;
-                    level2Select.appendChild(option);
-                });
-                // 重置三级维度
-                level3Select.innerHTML = '<option value="">选择三级维度</option>';
+    /**
+     * 异步函数，用于从服务器获取数据并填充下拉菜单
+     * @param {string} url - 获取数据的 API 地址
+     * @param {HTMLSelectElement} dropdown - 需要填充的下拉菜单元素
+     * @param {string} placeholder - 默认提示文本
+     * @param {string} selectedId - 需要默认选中的项的 ID
+     */
+    async function populateDropdown(url, dropdown, placeholder, selectedId) {
+        dropdown.disabled = true;
+        dropdown.innerHTML = '<option value="">加载中...</option>';
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('网络请求失败');
+            const data = await response.json();
+            
+            dropdown.innerHTML = `<option value="">${placeholder}</option>`;
+            data.forEach(dim => {
+                const option = document.createElement('option');
+                option.value = dim.id;
+                option.textContent = dim.name;
+                if (dim.id == selectedId) {
+                    option.selected = true;
+                }
+                dropdown.appendChild(option);
             });
-    });
-    
-    level2Select.addEventListener('change', function() {
-        const level2Id = this.value;
-        if (!level2Id) {
-            level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
-            return;
+        } catch (error) {
+            console.error('填充下拉菜单时出错:', error);
+            dropdown.innerHTML = '<option value="">加载失败</option>';
+        } finally {
+            dropdown.disabled = false;
         }
-        
-        fetch(`/get_dimensions?level=3&parent=${level2Id}`)
-            .then(response => response.json())
-            .then(data => {
-                level3Select.innerHTML = '<option value="">选择三级维度</option>';
-                data.forEach(dim => {
-                    const option = document.createElement('option');
-                    option.value = dim.id;
-                    option.textContent = dim.name;
-                    level3Select.appendChild(option);
-                });
-            });
-    });
-    
-    // 初始化：如果已有选择，尝试加载相关维度
-    if (level1Select.value) {
-        level1Select.dispatchEvent(new Event('change'));
     }
-    if (level2Select.value) {
-        level2Select.dispatchEvent(new Event('change'));
+
+    // 当一级维度变化时，更新二级维度
+    level1Select.addEventListener('change', async function() {
+        const level1Id = this.value;
+        // 清空三级维度
+        level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
+        if (level1Id) {
+            await populateDropdown(`/dimension/get?level=2&parent=${level1Id}`, level2Select, '请选择二级维度', '');
+        } else {
+            level2Select.innerHTML = '<option value="">请先选择一级维度</option>';
+        }
+    });
+
+    // 当二级维度变化时，更新三级维度
+    level2Select.addEventListener('change', async function() {
+        const level2Id = this.value;
+        if (level2Id) {
+            await populateDropdown(`/dimension/get?level=3&parent=${level2Id}`, level3Select, '请选择三级维度', '');
+        } else {
+            level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
+        }
+    });
+    
+    // --- 页面初始加载逻辑 ---
+    // 这个部分至关重要，它处理了因表单验证失败而重新加载页面时的数据恢复
+    const initialL1Id = level1Select.value;
+    if (initialL1Id) {
+        // 如果一级维度已有值，则加载对应的二级维度，并选中之前已选的二级维度
+        await populateDropdown(`/dimension/get?level=2&parent=${initialL1Id}`, level2Select, '请选择二级维度', selectedL2Id);
+        
+        // 如果二级维度也已有值，则加载对应的三级维度，并选中之前已选的三级维度
+        if (level2Select.value) {
+            await populateDropdown(`/dimension/get?level=3&parent=${level2Select.value}`, level3Select, '请选择三级维度', selectedL3Id);
+        }
     }
 });
 </script>

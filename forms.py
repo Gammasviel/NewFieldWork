@@ -9,9 +9,9 @@ class DimensionForm(FlaskForm):
     submit = SubmitField('添加维度')
 
 class QuestionForm(FlaskForm):
-    level1 = SelectField('一级维度', coerce=int, validators=[DataRequired()])
-    level2 = SelectField('二级维度', coerce=int, validators=[DataRequired()])
-    level3 = SelectField('三级维度', coerce=int, validators=[DataRequired()])
+    level1 = SelectField('一级维度', validators=[DataRequired()])
+    level2 = SelectField('二级维度', validators=[DataRequired()])
+    level3 = SelectField('三级维度', validators=[DataRequired()])
     question_type = SelectField('题目类型', choices=[
         ('subjective', '主观题'),
         ('objective', '客观题')

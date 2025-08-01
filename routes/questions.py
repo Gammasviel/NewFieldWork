@@ -1,4 +1,4 @@
-from flask import render_template, Blueprint, flash, redirect, jsonify, url_for, request
+from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify
 from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
 from utils import process_question, process_all_questions
@@ -9,39 +9,41 @@ questions_bp = Blueprint('questions', __name__, url_prefix='/question')
 @questions_bp.route('/add', methods=['GET', 'POST'])
 def add_question():
     form = QuestionForm()
-        
-    # 获取所有维度数据
-    level1_dims = Dimension.query.filter_by(level=1).all()
-    level2_dims = Dimension.query.filter_by(level=2).all()
-    level3_dims = Dimension.query.filter_by(level=3).all()
     
-    # 组织维度数据用于前端展示
-    dimension_options = {}
-    for dim in level3_dims:
-        level2 = dim.parent_ref
-        level1 = level2.parent_ref if level2 else None
-        
-        if level1 and level2:
-            level1_name = level1.name
-            level2_name = level2.name
-            level3_name = dim.name
-            
-            if level1_name not in dimension_options:
-                dimension_options[level1_name] = {}
-            if level2_name not in dimension_options[level1_name]:
-                dimension_options[level1_name][level2_name] = []
-            
-            dimension_options[level1_name][level2_name].append((dim.id, level3_name))
-    
-    # 动态加载维度选择
+    # 1. 始终填充一级维度的选项
+    level1_dims = Dimension.query.filter_by(level=1).order_by(Dimension.name).all()
     form.level1.choices = [(d.id, d.name) for d in level1_dims]
-    form.level2.choices = [(d.id, d.name) for d in level2_dims]
-    form.level3.choices = [(d.id, d.name) for d in level3_dims]
+    
+    # 2. 如果是POST请求（即表单已提交），则根据提交的数据填充二级和三级选项
+    #    这是为了在验证失败时，能够正确回显用户的选择
+    if request.method == 'POST':
+        level1_id = form.level1.data
+        if level1_id:
+            level2_dims = Dimension.query.filter_by(level=2, parent=level1_id).order_by(Dimension.name).all()
+            form.level2.choices = [(d.id, d.name) for d in level2_dims]
+        else:
+            form.level2.choices = []
+
+        level2_id = form.level2.data
+        if level2_id:
+            level3_dims = Dimension.query.filter_by(level=3, parent=level2_id).order_by(Dimension.name).all()
+            form.level3.choices = [(d.id, d.name) for d in level3_dims]
+        else:
+            form.level3.choices = []
+    else:
+        # 3. 如果是GET请求（首次加载页面），则二级和三级选项为空，等待用户选择
+        form.level2.choices = []
+        form.level3.choices = []
+
+    # 4. 为所有下拉菜单添加默认的提示选项
+    form.level1.choices.insert(0, ('', '请选择一级维度'))
+    form.level2.choices.insert(0, ('', '请选择二级维度'))
+    form.level3.choices.insert(0, ('', '请选择三级维度'))
     
     if form.validate_on_submit():
         # 创建新问题
         new_question = Question(
-            dimension_id=form.level3.data,
+            dimension_id=int(form.level3.data),
             question_type=form.question_type.data,
             content=form.content.data,
             answer=form.answer.data if form.question_type.data == 'objective' else None
@@ -51,7 +53,8 @@ def add_question():
         flash('题目添加成功', 'success')
         return redirect(url_for('index.index'))
     
-    return render_template('add_question.html', form=form, dimension_options=dimension_options)
+    # 注意：我们不再需要向模板传递 dimension_options 字典
+    return render_template('add_question.html', form=form)
 
 
 @questions_bp.route('/update', methods=['GET', 'POST'])

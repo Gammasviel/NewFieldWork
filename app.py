@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_migrate import Migrate
 from models import db, Setting, LLM
 from llm import clients
 from config import DEFAULT_CRITERIA
@@ -10,6 +11,8 @@ def create_app():
     db.init_app(app)
     # migrate = Migrate(app, db)
 
+    migrate = Migrate(app, db)
+    
     app.register_blueprint(dimensions_bp)
     app.register_blueprint(index_bp)
     app.register_blueprint(leaderboard_bp)

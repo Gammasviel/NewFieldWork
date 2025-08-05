@@ -61,6 +61,7 @@ class Rating(db.Model):
     llm_id = db.Column(db.Integer, db.ForeignKey('llm.id'), nullable=False)  # 改为关联LLM
     score = db.Column(db.Float, nullable=False)
     comment = db.Column(db.Text)
+    is_responsive = db.Column(db.Boolean, nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
     
     answer = db.relationship('Answer', back_populates='ratings')

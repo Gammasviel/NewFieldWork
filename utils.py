@@ -6,7 +6,7 @@ from llm import clients
 
 def process_question(question_id):
     """处理单个问题：让所有AI模型回答并由其他模型评分"""
-    from app import app
+    from .app import app
     with app.app_context():
         question = db.session.get(Question, question_id)
         if not question:

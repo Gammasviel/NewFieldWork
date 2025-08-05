@@ -2,7 +2,15 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">题目详情</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>题目详情 (ID: {{ question.id }})</h2>
+        <!-- 删除按钮表单 -->
+        <form method="POST" action="{{ url_for('questions.delete_question', question_id=question.id) }}" onsubmit="return confirm('确定要永久删除这个问题吗？所有相关的回答和评分都将被删除！');">
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i> 删除此问题
+            </button>
+        </form>
+    </div>
     
     <div class="card mb-4">
         <div class="card-body">
@@ -12,19 +20,13 @@
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>所属维度:</strong> 
-                        {% set dim = question.dimension_ref %}
-                        {% if dim %}
-                            {% set dim_level2 = dim.parent_ref %}
-                            {% if dim_level2 %}
-                                {% set dim_level1 = dim_level2.parent_ref %}
-                                {% if dim_level1 %}
-                                    {{ dim_level1.name }} > 
-                                {% endif %}
-                                {{ dim_level2.name }} > 
-                            {% endif %}
+                        {% set dim = question.dimension %}
+                        {% if dim and dim.parent_ref and dim.parent_ref.parent_ref %}
+                            {{ dim.parent_ref.parent_ref.name }} > {{ dim.parent_ref.name }} > {{ dim.name }}
+                        {% elif dim %}
                             {{ dim.name }}
                         {% else %}
-                            未分配维度
+                            <span class="text-muted">未分配维度</span>
                         {% endif %}
                     </p>
                 </div>
@@ -49,6 +51,9 @@
         </div>
     </div>
     
+    <h4 class="mb-3">模型回答与评分</h4>
+    
+    {% if answers %}
     <div class="mb-3">
         <label class="form-label">选择模型查看详情:</label>
         <select id="model-select" class="form-select">
@@ -64,39 +69,44 @@
         <div class="card mb-3 answer-item" id="model-{{ answer.id }}">
             <div class="card-header bg-light d-flex justify-content-between">
                 <h5 class="mb-0">{{ answer.llm.name }}</h5>
+                {% if answer.ratings %}
                 <span class="badge bg-primary">
-                    平均得分: {{ "%.2f" | format(answer.ratings|map(attribute='score'))|sum / answer.ratings|length if answer.ratings else 0 }}
+                    平均得分: {{ "%.2f" | format((answer.ratings|map(attribute='score')|sum) / answer.ratings|length) }}
                 </span>
+                {% endif %}
             </div>
             <div class="card-body">
                 <h6>回答内容:</h6>
-                <p>{{ answer.content }}</p>
+                <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ answer.content }}</pre>
                 
+                {% if answer.ratings %}
                 <div class="row mt-4">
                     {% for rating in answer.ratings %}
-                    <div class="col-md-6">
-                        <div class="card">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <h6 class="card-title">{{ rating.llm.name }} 评分</h6>
                                     <span class="badge bg-info">{{ rating.score }}分</span>
                                 </div>
                                 {% if rating.comment %}
-                                <p class="card-text mt-2">{{ rating.comment }}</p>
+                                <p class="card-text mt-2 small text-muted">{{ rating.comment }}</p>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
+                {% endif %}
             </div>
-        </div>
-        {% else %}
-        <div class="alert alert-warning">
-            该问题尚未进行评估，请先更新问题。
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <div class="alert alert-warning">
+        该问题尚未进行评估，请在 <a href="{{ url_for('questions.update_questions') }}">问题列表</a> 中进行更新。
+    </div>
+    {% endif %}
 </div>
 
 <script>
@@ -104,23 +114,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const modelSelect = document.getElementById('model-select');
     const answerItems = document.querySelectorAll('.answer-item');
     
-    function filterAnswers() {
-        const selectedModel = modelSelect.value;
+    if (modelSelect) {
+        function filterAnswers() {
+            const selectedModel = modelSelect.value;
+            
+            answerItems.forEach(item => {
+                if (selectedModel === 'all' || item.id === selectedModel) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
         
-        answerItems.forEach(item => {
-            if (selectedModel === 'all' || item.id === selectedModel) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
-            }
-        });
+        filterAnswers();
+        modelSelect.addEventListener('change', filterAnswers);
     }
-    
-    // 初始显示所有
-    filterAnswers();
-    
-    // 监听选择变化
-    modelSelect.addEventListener('change', filterAnswers);
 });
 </script>
 {% endblock %}

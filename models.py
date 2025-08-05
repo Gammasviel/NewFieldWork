@@ -36,6 +36,7 @@ class Question(db.Model):
         back_populates='questions',
         foreign_keys=[dimension_id]
     )
+    answers = db.relationship('Answer', back_populates='question', cascade="all, delete-orphan")
     
     def __repr__(self):
         return f'<Question {self.id}: {self.content[:50]}>'
@@ -47,7 +48,8 @@ class Answer(db.Model):
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
     
-    question = db.relationship('Question', backref='answers')
+    question = db.relationship('Question', back_populates='answers')
+    ratings = db.relationship('Rating', back_populates='answer', cascade="all, delete-orphan")
     llm = db.relationship('LLM', backref='answers')  # 确保有这个关系
     
     def __repr__(self):
@@ -61,7 +63,7 @@ class Rating(db.Model):
     comment = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
     
-    answer = db.relationship('Answer', backref='ratings')
+    answer = db.relationship('Answer', back_populates='ratings')
     llm = db.relationship('LLM', backref='ratings')  # 新增关系
     
     def __repr__(self):

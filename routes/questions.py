@@ -1,7 +1,9 @@
+# .\routes\questions.py
+
 from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify
 from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
-from utils import process_question, process_all_questions
+from utils import process_question
 import threading
 
 questions_bp = Blueprint('questions', __name__, url_prefix='/question')
@@ -10,12 +12,9 @@ questions_bp = Blueprint('questions', __name__, url_prefix='/question')
 def add_question():
     form = QuestionForm()
     
-    # 1. 始终填充一级维度的选项
     level1_dims = Dimension.query.filter_by(level=1).order_by(Dimension.name).all()
     form.level1.choices = [(d.id, d.name) for d in level1_dims]
     
-    # 2. 如果是POST请求（即表单已提交），则根据提交的数据填充二级和三级选项
-    #    这是为了在验证失败时，能够正确回显用户的选择
     if request.method == 'POST':
         level1_id = form.level1.data
         if level1_id:
@@ -31,17 +30,14 @@ def add_question():
         else:
             form.level3.choices = []
     else:
-        # 3. 如果是GET请求（首次加载页面），则二级和三级选项为空，等待用户选择
         form.level2.choices = []
         form.level3.choices = []
 
-    # 4. 为所有下拉菜单添加默认的提示选项
     form.level1.choices.insert(0, ('', '请选择一级维度'))
     form.level2.choices.insert(0, ('', '请选择二级维度'))
     form.level3.choices.insert(0, ('', '请选择三级维度'))
     
     if form.validate_on_submit():
-        # 创建新问题
         new_question = Question(
             dimension_id=int(form.level3.data),
             question_type=form.question_type.data,
@@ -53,28 +49,22 @@ def add_question():
         flash('题目添加成功', 'success')
         return redirect(url_for('index.index'))
     
-    # 注意：我们不再需要向模板传递 dimension_options 字典
     return render_template('add_question.html', form=form)
 
 
 @questions_bp.route('/update', methods=['GET', 'POST'])
 def update_questions():
+    # 注意：这个路由现在也处理来自旧 'update-all' 按钮的POST请求
     if request.method == 'POST':
         question_id = request.form.get('question_id')
         if question_id:
-            # 在后台线程中处理单个问题
             thread = threading.Thread(target=process_question, args=(question_id,))
             thread.start()
             return jsonify({'status': 'processing', 'question_id': question_id})
-        else:
-            # 处理所有问题
-            thread = threading.Thread(target=process_all_questions)
-            thread.start()
-            return jsonify({'status': 'processing_all'})
     
-    # 获取所有问题
-    questions = Question.query.all()
+    questions = Question.query.order_by(Question.id.desc()).all()
     return render_template('update_questions.html', questions=questions)
+
 
 @questions_bp.route('/<int:question_id>')
 def question_detail(question_id):
@@ -85,3 +75,43 @@ def question_detail(question_id):
     ).all()
     
     return render_template('question_detail.html', question=question, answers=answers)
+
+
+@questions_bp.route('/delete/<int:question_id>', methods=['POST'])
+def delete_question(question_id):
+    """处理单个问题的删除"""
+    question = Question.query.get_or_404(question_id)
+    db.session.delete(question)
+    db.session.commit()
+    flash(f'题目 ID:{question.id} 已被成功删除。', 'success')
+    
+    return redirect(url_for('questions.update_questions'))
+
+
+@questions_bp.route('/bulk_action', methods=['POST'])
+def bulk_action():
+    """处理批量操作（更新或删除）"""
+    action = request.form.get('action')
+    question_ids = request.form.getlist('question_ids')
+    
+    if not question_ids:
+        flash('没有选择任何题目。', 'warning')
+        return redirect(url_for('questions.update_questions'))
+        
+    if action == 'update':
+        for qid in question_ids:
+            # 为每个问题启动一个后台更新线程
+            thread = threading.Thread(target=process_question, args=(int(qid),))
+            thread.start()
+        flash(f'已开始在后台更新 {len(question_ids)} 个选定的问题。', 'info')
+        
+    elif action == 'delete':
+        # 批量删除
+        Question.query.filter(Question.id.in_(question_ids)).delete(synchronize_session=False)
+        db.session.commit()
+        flash(f'已成功删除 {len(question_ids)} 个选定的问题。', 'success')
+        
+    else:
+        flash('无效操作。', 'danger')
+
+    return redirect(url_for('questions.update_questions'))

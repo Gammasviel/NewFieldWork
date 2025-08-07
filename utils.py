@@ -1,29 +1,11 @@
 from models import db, Answer, Rating, Question, Setting, LLM
-import random
 import time
-from config import AI_MODELS, DEFAULT_CRITERIA, QUESTION_TEMPLATE, RATING_TEMPLATE, RATERS, RATING_FAIL_RETRIES, DEFAULT_TOTAL_SCORE
+from config import DEFAULT_CRITERIA, QUESTION_TEMPLATE, RATING_TEMPLATE, RATERS, RATING_FAIL_RETRIES, DEFAULT_TOTAL_SCORE
 from llm import clients
 
-def get_evaluation_context(question: Question) -> dict:
-    setting = Setting.query.filter_by(question_type=question.question_type).first()
-    
-    criteria = setting.criteria if setting else DEFAULT_CRITERIA[question.question_type]
-    total_score = setting.total_score if setting else DEFAULT_TOTAL_SCORE
-    
-    rater_llms = LLM.query.filter(LLM.name.in_(RATERS)).all()
-    rater_ids = [rater.id for rater in rater_llms]
-    
-    return {
-        'criteria': criteria,
-        'total_score': total_score,
-        'rater_ids': rater_ids
-    }
-
-def generate_answer(question: Question, rater_ids: list[int]) -> list[Answer]:
+def generate_answers(question: Question, rater_ids_all: list[int]) -> list[Answer]:
     question_prompt = QUESTION_TEMPLATE[question.question_type].format(question.content)
-    
-    # 获取除评委外的所有模型的回答
-    responses = clients.generate_responses(question_prompt, exclusions=rater_ids)
+    responses = clients.generate_responses(question_prompt, exclusions=rater_ids_all)
     
     new_answers = []
     for llm_id, response_content in responses.items():
@@ -35,43 +17,38 @@ def generate_answer(question: Question, rater_ids: list[int]) -> list[Answer]:
         db.session.add(answer)
         new_answers.append(answer)
     
-    # 刷新会话，为新答案对象分配ID，以便后续关联评分
     db.session.flush()
     return new_answers
 
-def rate_answer(answer: Answer, question: Question, context: dict):
+def rate_answer(answer: Answer, question: Question, criteria: str, total_score: str, rater_ids: list[int]):
     valid_scores = []
     rater_comments = []
 
-    # 为此回答构建评分Prompt
     if question.question_type == 'objective':
         rating_prompt = RATING_TEMPLATE['objective'].format(
             question=question.content,
             answer=question.answer,
-            criteria=context['criteria'],
+            criteria=criteria,
             response=answer.content
         )
-    else:  # 'subjective'
+    else:
         rating_prompt = RATING_TEMPLATE['subjective'].format(
             question=question.content,
-            criteria=context['criteria'],
+            criteria=criteria,
             response=answer.content
         )
 
     # 遍历所有评委模型进行评分
-    for rater_id in context['rater_ids']:
+    for rater_id in rater_ids:
         score = -1.0
-        # 包含评分失败的重试逻辑
         for _ in range(RATING_FAIL_RETRIES):
             raw_score = clients.generate_response(rating_prompt, rater_id)
             try:
                 parsed_score = float(raw_score)
-                # 确保分数在有效范围内
-                if 0 <= parsed_score <= context['total_score']:
+                if 0 <= parsed_score <= total_score:
                     score = parsed_score
                     break
             except (ValueError, TypeError):
-                # 如果解析失败，将进行下一次重试
                 pass
         
         rater_llm = db.session.get(LLM, rater_id)
@@ -80,15 +57,16 @@ def rate_answer(answer: Answer, question: Question, context: dict):
         if score != -1.0:
             valid_scores.append(score)
         rater_comments.append(f'{rater_name}: {score if score != -1.0 else "Rating Failed"}')
-
-    # 计算平均分，避免除以零的错误
-    final_score = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
     
+    final_score = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
+    is_responsive = 2.5 <= final_score <= 3.5
+
     # 创建并存储最终的评分记录
     rating = Rating(
         answer_id=answer.id,
-        llm_id=answer.llm_id,  # 评分是针对“回答者”模型的
+        llm_id=answer.llm_id,
         score=final_score,
+        is_responsive=is_responsive, # 在这里设置 is_responsive 的值
         comment='\n'.join(rater_comments)
     )
     db.session.add(rating)
@@ -98,25 +76,32 @@ def process_question(question_id):
     with app.app_context():
         question = db.session.get(Question, question_id)
         if not question:
-            print(f"Error: Question with ID {question_id} not found.")
             return
 
-        # 1. 获取评估所需的全部上下文信息
-        context = get_evaluation_context(question)
-        if not context['rater_ids']:
-            print("Warning: No rater models found in the database. Aborting evaluation.")
-            return
+        Answer.query.filter_by(question_id=question_id).delete()
+        
+            
+        setting = Setting.query.filter_by(question_type=question.question_type).first()
+        
+        criteria = setting.criteria if setting else DEFAULT_CRITERIA[question.question_type]
+        total_score = setting.total_score if setting else DEFAULT_TOTAL_SCORE
+        
+        rater_llms_all = LLM.query.filter(LLM.name.in_([rater for raters in RATERS.values() for rater in raters])).all()
+        rater_ids_all = [rater.id for rater in rater_llms_all]
+        
+        rater_llm = LLM.query.filter(LLM.name.in_(RATERS[question.question_type])).all()
+        rater_ids = [rater.id for rater in rater_llm]
 
         # 2. 让所有待评估模型生成回答并存入数据库
-        new_answers = generate_answer(question, context['rater_ids'])
+        new_answers = generate_answers(question, rater_ids_all)
 
         # 3. 遍历每个新生成的回答，让评委模型进行评分
         for answer in new_answers:
-            rate_answer(answer, question, context)
+            rate_answer(answer, question, criteria, total_score, rater_ids)
             
-        # 4. 提交本次问题处理的所有数据库事务
+        # 4. 提交本次问题处理的所有数据库事务（包括开头的删除和后续的新增）
         db.session.commit()
-        print(f"Successfully processed question {question_id}.")
+
 
 def process_all_questions():
     """处理所有问题：重新回答和评分"""

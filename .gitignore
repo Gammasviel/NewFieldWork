@@ -1,2 +1,5 @@
 instance/
 migrations/
+__pycache__/
+import_*.py
+*.pyc

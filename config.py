@@ -5,8 +5,6 @@ SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///evaluation.db'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# 支持的AI模型
-AI_MODELS = ["AI模型1", "AI模型2", "AI模型3"]
 MAX_RETRIES = 3  # API调用最大重试次数
 
 DEFAULT_CRITERIA = {
@@ -49,7 +47,10 @@ ai回答：{response}''',
 ai回答：{response}'''
 }
 
-RATERS = ['deepseek_rater', 'qwen_rater']
+RATERS = {
+    'objective': ['claude_rater'],
+    'subjective': ['gemini_rater']
+}
 
 CONNECTION_ERROR_RETRIES = 5
 RATING_FAIL_RETRIES = 5

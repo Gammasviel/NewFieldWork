@@ -1,6 +1,6 @@
 # .\routes\questions.py
 
-from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify
+from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify, current_app
 from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
 from utils import process_question
@@ -58,7 +58,8 @@ def update_questions():
     if request.method == 'POST':
         question_id = request.form.get('question_id')
         if question_id:
-            thread = threading.Thread(target=process_question, args=(question_id,))
+            app = current_app._get_current_object()
+            thread = threading.Thread(target=process_question, args=(app, question_id))
             thread.start()
             return jsonify({'status': 'processing', 'question_id': question_id})
     
@@ -97,11 +98,13 @@ def bulk_action():
     if not question_ids:
         flash('没有选择任何题目。', 'warning')
         return redirect(url_for('questions.update_questions'))
-        
+    
+    app = current_app._get_current_object()
+    
     if action == 'update':
         for qid in question_ids:
             # 为每个问题启动一个后台更新线程
-            thread = threading.Thread(target=process_question, args=(int(qid),))
+            thread = threading.Thread(target=process_question, args=(app, int(qid)))
             thread.start()
         flash(f'已开始在后台更新 {len(question_ids)} 个选定的问题。', 'info')
         

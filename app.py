@@ -5,7 +5,8 @@ from llm import clients
 from config import DEFAULT_CRITERIA
 from routes import dimensions_bp, index_bp, leaderboard_bp, models_bp, questions_bp, settings_bp
 
-from import_dimensions import import_datas
+# from import_llms import import_datas
+import_datas = lambda x:x
 
 def create_app():
     app = Flask(__name__)
@@ -24,6 +25,7 @@ def create_app():
     
     with app.app_context():
         db.create_all()
+        import_datas(app)
         
         clients.create_clients([
             {
@@ -42,7 +44,6 @@ def create_app():
             db.session.add(default_setting_objective)
             db.session.add(default_setting_subjective)
             db.session.commit()
-        import_datas(app)
     return app
 
 

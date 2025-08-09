@@ -71,8 +71,7 @@ def rate_answer(answer: Answer, question: Question, criteria: str, total_score: 
     )
     db.session.add(rating)
 
-def process_question(question_id):
-    from app import app
+def process_question(app, question_id):
     with app.app_context():
         question = db.session.get(Question, question_id)
         if not question:
@@ -103,9 +102,7 @@ def process_question(question_id):
         db.session.commit()
 
 
-def process_all_questions():
-    """处理所有问题：重新回答和评分"""
-    from app import app
+def process_all_questions(app):
     with app.app_context():
         # 获取所有问题ID
         question_ids = [q.id for q in Question.query.all()]

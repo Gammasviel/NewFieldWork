@@ -3,3 +3,5 @@ migrations/
 __pycache__/
 import_*.py
 *.pyc
+*.xlsx
+routes/__pycache__/

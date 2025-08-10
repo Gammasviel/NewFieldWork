@@ -1,13 +1,16 @@
-from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify, current_app
+from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify
 from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
+from module_logger import get_module_logger
 
 questions_bp = Blueprint('questions', __name__, url_prefix='/question')
+logger = get_module_logger('question_routes')
 
 @questions_bp.route('/add', methods=['GET', 'POST'])
 def add_question():
     form = QuestionForm()
     
+    # 动态加载维度的逻辑保持不变
     level1_dims = Dimension.query.filter_by(level=1).order_by(Dimension.name).all()
     form.level1.choices = [(d.id, d.name) for d in level1_dims]
     
@@ -34,6 +37,7 @@ def add_question():
     form.level3.choices.insert(0, ('', '请选择三级维度'))
     
     if form.validate_on_submit():
+        logger.info(f"Attempting to add new '{form.question_type.data}' question.")
         new_question = Question(
             dimension_id=int(form.level3.data),
             question_type=form.question_type.data,
@@ -43,16 +47,19 @@ def add_question():
         db.session.add(new_question)
         db.session.commit()
         flash('题目添加成功', 'success')
-        return redirect(url_for('index.index'))
+        logger.info(f"Successfully added question, new ID: {new_question.id}.")
+        return redirect(url_for('questions.update_questions')) # 改为跳转到问题列表页更友好
     
     return render_template('add_question.html', form=form)
 
+# --- 这是被遗漏的函数 ---
 @questions_bp.route('/<int:question_id>')
 def question_detail(question_id):
+    logger.info(f"Accessed detail page for Question ID: {question_id}.") # <-- 添加日志
     question = Question.query.get_or_404(question_id)
     answers = Answer.query.filter_by(question_id=question_id).options(
         db.joinedload(Answer.llm),
-        db.joinedload(Answer.ratings).joinedload(Rating.llm)
+        db.joinedload(Answer.ratings) # 简化了这里的 joinedload，因为 rater 信息在 comment 中
     ).all()
     
     return render_template('question_detail.html', question=question, answers=answers)
@@ -62,9 +69,11 @@ def question_detail(question_id):
 def delete_question(question_id):
     """处理单个问题的删除"""
     question = Question.query.get_or_404(question_id)
+    logger.warning(f"Attempting to delete question ID: {question.id}.")
     db.session.delete(question)
     db.session.commit()
     flash(f'题目 ID:{question.id} 已被成功删除。', 'success')
+    logger.info(f"Successfully deleted question ID: {question.id}.")
     
     return redirect(url_for('questions.update_questions'))
 
@@ -74,13 +83,14 @@ def update_questions():
     if request.method == 'POST':
         question_id = request.form.get('question_id')
         if question_id:
-            # --- 把导入语句移到这里 ---
             from tasks import process_question
             
+            logger.info(f"Queuing single question update task for question ID: {question_id}.")
             process_question.delay(int(question_id))
             flash(f'问题 {question_id} 的更新任务已加入队列。', 'info')
             return jsonify({'status': 'queued', 'question_id': question_id})
     
+    logger.info("Accessed question list and update page.")
     questions = Question.query.order_by(Question.id.desc()).all()
     return render_template('update_questions.html', questions=questions)
 
@@ -92,10 +102,12 @@ def bulk_action():
     
     if not question_ids:
         flash('没有选择任何题目。', 'warning')
+        logger.warning("Bulk action initiated but no questions were selected.")
         return redirect(url_for('questions.update_questions'))
+        
+    logger.info(f"Performing bulk action '{action}' on {len(question_ids)} questions. IDs: {question_ids}")
     
     if action == 'update':
-        # --- 把导入语句移到这里 ---
         from tasks import process_question
         
         for qid in question_ids:
@@ -103,11 +115,14 @@ def bulk_action():
         flash(f'已将 {len(question_ids)} 个问题的更新任务加入后台队列。', 'info')
         
     elif action == 'delete':
+        logger.warning(f"Bulk deleting questions with IDs: {question_ids}.")
         Question.query.filter(Question.id.in_(question_ids)).delete(synchronize_session=False)
         db.session.commit()
         flash(f'已成功删除 {len(question_ids)} 个选定的问题。', 'success')
+        logger.info(f"Successfully bulk deleted {len(question_ids)} questions.")
         
     else:
         flash('无效操作。', 'danger')
+        logger.error(f"Invalid bulk action attempted: {action}.")
 
     return redirect(url_for('questions.update_questions'))

@@ -3,6 +3,9 @@ from models import db, Question, Answer, Setting, LLM, Rating
 from config import DEFAULT_CRITERIA, QUESTION_TEMPLATE, RATING_TEMPLATE, RATERS, RATING_FAIL_RETRIES, DEFAULT_TOTAL_SCORE
 from llm import clients
 from celery import Celery
+from module_logger import get_module_logger
+
+logger = get_module_logger('celery_tasks')
 
 # 1. 创建一个 Flask app 实例以获取其配置
 flask_app = create_app()
@@ -35,37 +38,42 @@ def process_question(question_id):
     这是一个 Celery 任务，它在独立的 Worker 进程中运行。
     注意：函数签名不再需要 app 参数。
     """
+    logger.info(f"Celery task 'process_question' started for Question ID: {question_id}.")
     question = db.session.get(Question, question_id)
     if not question:
-        # 可以添加日志记录
-        print(f"任务失败：找不到 ID 为 {question_id} 的问题。")
+        logger.error(f"Task failed: Could not find Question with ID {question_id}.")
         return
 
     # 删除旧的答案和评分
+    logger.info(f"Deleting old answers and ratings for Question ID: {question_id}.")
     Answer.query.filter_by(question_id=question_id).delete()
+    db.session.commit() # 提交删除操作
     
     # 获取设置和评委
     setting = Setting.query.filter_by(question_type=question.question_type).first()
     criteria = setting.criteria if setting else DEFAULT_CRITERIA[question.question_type]
     total_score = setting.total_score if setting else DEFAULT_TOTAL_SCORE
+    logger.info(f"Using '{question.question_type}' criteria for Question ID: {question_id}.")
     
     rater_llms_all = LLM.query.filter(LLM.name.in_([rater for raters in RATERS.values() for rater in raters])).all()
     rater_ids_all = [rater.id for rater in rater_llms_all]
     
     rater_llm = LLM.query.filter(LLM.name.in_(RATERS[question.question_type])).all()
     rater_ids = [rater.id for rater in rater_llm]
+    logger.info(f"Rater models for this task: {[r.name for r in rater_llm]}.")
 
-    # 生成回答 (utils.py 中的函数可以直接复用或移入此类)
-    # 注意：这些函数现在将使用在任务上下文中可用的 db.session
-    # from utils import generate_answers, rate_answer
+    # 生成回答
+    logger.info(f"Generating new answers for Question ID: {question_id}.")
     new_answers = generate_answers(question, rater_ids_all)
+    logger.info(f"Generated {len(new_answers)} new answers for Question ID: {question_id}.")
 
     # 评分
     for answer in new_answers:
+        logger.info(f"Rating answer ID: {answer.id} for LLM ID: {answer.llm_id}.")
         rate_answer(answer, question, criteria, total_score, rater_ids)
         
     db.session.commit()
-    print(f"成功处理完问题 {question_id}。")
+    logger.info(f"Successfully processed and saved all data for Question ID: {question_id}.")
     
 def generate_answers(question: Question, rater_ids_all: list[int]) -> list[Answer]:
     question_prompt = QUESTION_TEMPLATE[question.question_type].format(question.content)
@@ -105,32 +113,38 @@ def rate_answer(answer: Answer, question: Question, criteria: str, total_score: 
     # 遍历所有评委模型进行评分
     for rater_id in rater_ids:
         score = -1.0
-        for _ in range(RATING_FAIL_RETRIES):
+        for i in range(RATING_FAIL_RETRIES):
             raw_score = clients.generate_response(rating_prompt, rater_id)
             try:
                 parsed_score = float(raw_score)
                 if 0 <= parsed_score <= total_score:
                     score = parsed_score
+                    logger.info(f"Rater ID {rater_id} gave a valid score: {score} for Answer ID {answer.id}.")
                     break
+                else:
+                    logger.warning(f"Rater ID {rater_id} gave an out-of-range score: {parsed_score}. Retrying... ({i+1}/{RATING_FAIL_RETRIES})")
             except (ValueError, TypeError):
-                pass
+                logger.warning(f"Failed to parse score from rater ID {rater_id}. Raw output: '{raw_score}'. Retrying... ({i+1}/{RATING_FAIL_RETRIES})")
         
         rater_llm = db.session.get(LLM, rater_id)
         rater_name = rater_llm.name if rater_llm else f"RaterID_{rater_id}"
 
         if score != -1.0:
             valid_scores.append(score)
+        else:
+            logger.error(f"Rating failed for Answer ID: {answer.id} by Rater '{rater_name}' after {RATING_FAIL_RETRIES} retries.")
         rater_comments.append(f'{rater_name}: {score if score != -1.0 else "Rating Failed"}')
     
     final_score = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
     is_responsive = 2.5 <= final_score <= 3.5
+    logger.info(f"Final score for Answer ID {answer.id} is {final_score}. Is responsive: {is_responsive}.")
 
     # 创建并存储最终的评分记录
     rating = Rating(
         answer_id=answer.id,
         llm_id=answer.llm_id,
         score=final_score,
-        is_responsive=is_responsive, # 在这里设置 is_responsive 的值
+        is_responsive=is_responsive,
         comment='\n'.join(rater_comments)
     )
     db.session.add(rating)

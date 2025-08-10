@@ -1,0 +1,19 @@
+INFO - flask_app - 2025-08-11 00:37:32.616704 - Flask app creation started.
+INFO - flask_app - 2025-08-11 00:37:32.623157 - Initializing database.
+INFO - flask_app - 2025-08-11 00:37:32.721438 - Registering blueprints.
+INFO - flask_app - 2025-08-11 00:37:32.724002 - Creating all database tables.
+INFO - flask_app - 2025-08-11 00:37:32.746144 - Creating LLM clients for 12 models.
+INFO - llm_clients - 2025-08-11 00:37:32.746388 - Creating/updating a total of 12 LLM clients.
+INFO - llm_clients - 2025-08-11 00:37:32.746599 - Initializing client for model 'deepseek' (ID: 1) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.124037 - Initializing client for model 'qwen' (ID: 2) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.153950 - Initializing client for model 'kimi' (ID: 3) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.183417 - Initializing client for model 'ernie' (ID: 4) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.213285 - Initializing client for model 'doubao' (ID: 5) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.244754 - Initializing client for model 'glm' (ID: 6) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.276704 - Initializing client for model 'spark' (ID: 7) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.309662 - Initializing client for model 'chuan' (ID: 8) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.351968 - Initializing client for model 'minimax' (ID: 9) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.401880 - Initializing client for model 'hunyuan' (ID: 10) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.459174 - Initializing client for model 'gemini_rater' (ID: 11) with 1 API key(s).
+INFO - llm_clients - 2025-08-11 00:37:33.522110 - Initializing client for model 'claude_rater' (ID: 12) with 1 API key(s).
+INFO - flask_app - 2025-08-11 00:37:33.677730 - Flask app creation finished.

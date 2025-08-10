@@ -1,8 +1,10 @@
 from flask import Blueprint, request, render_template
 from sqlalchemy.orm import aliased
 from models import db, Dimension, Rating, Setting, Answer, Question, LLM
+from module_logger import get_module_logger
 
 leaderboard_bp = Blueprint('leaderboard', __name__, url_prefix='/leaderboard')
+logger = get_module_logger('leaderboard_routes')
 
 @leaderboard_bp.route('/')
 def leaderboard():
@@ -15,6 +17,8 @@ def leaderboard():
     dim_level1 = aliased(Dimension)
     dim_level2 = aliased(Dimension)
     dim_level3 = aliased(Dimension)
+    
+    logger.info(f"Leaderboard accessed with filters: Level1_ID={level1_id}, Level2_ID={level2_id}, Level3_ID={level3_id}")
     
     # 【修改点】重构查询以包含响应率计算
     query = db.session.query(

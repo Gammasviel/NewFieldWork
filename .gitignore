@@ -1,10 +1,6 @@
 instance/
 migrations/
 __pycache__/
-import_*.py
-*.pyc
-*.xlsx
-routes/__pycache__/
-copy_tree.py
-_utils.py
+*/__pycache__/
 venv/
+temp/

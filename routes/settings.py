@@ -1,4 +1,4 @@
-from flask import url_for, render_template, Blueprint, redirect
+from flask import url_for, render_template, Blueprint, redirect, request
 from models import db, Setting
 from forms import SettingForm
 from config import DEFAULT_CRITERIA

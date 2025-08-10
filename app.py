@@ -6,9 +6,6 @@ from config import DEFAULT_CRITERIA
 from routes import dimensions_bp, index_bp, leaderboard_bp, models_bp, questions_bp, settings_bp
 from module_logger import get_module_logger
 
-# from import_llms import import_datas
-import_datas = lambda x:x
-
 logger = get_module_logger('flask_app')
 
 def create_app():
@@ -32,7 +29,6 @@ def create_app():
     with app.app_context():
         logger.info("Creating all database tables.")
         db.create_all()
-        import_datas(app)
         
         all_llms = LLM.query.all()
         logger.info(f"Creating LLM clients for {len(all_llms)} models.")

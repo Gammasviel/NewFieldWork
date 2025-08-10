@@ -3,8 +3,7 @@
 from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify, current_app
 from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
-from utils import process_question
-import threading
+from tasks import process_question
 
 questions_bp = Blueprint('questions', __name__, url_prefix='/question')
 
@@ -51,22 +50,6 @@ def add_question():
     
     return render_template('add_question.html', form=form)
 
-
-@questions_bp.route('/update', methods=['GET', 'POST'])
-def update_questions():
-    # 注意：这个路由现在也处理来自旧 'update-all' 按钮的POST请求
-    if request.method == 'POST':
-        question_id = request.form.get('question_id')
-        if question_id:
-            app = current_app._get_current_object()
-            thread = threading.Thread(target=process_question, args=(app, question_id))
-            thread.start()
-            return jsonify({'status': 'processing', 'question_id': question_id})
-    
-    questions = Question.query.order_by(Question.id.desc()).all()
-    return render_template('update_questions.html', questions=questions)
-
-
 @questions_bp.route('/<int:question_id>')
 def question_detail(question_id):
     question = Question.query.get_or_404(question_id)
@@ -88,10 +71,22 @@ def delete_question(question_id):
     
     return redirect(url_for('questions.update_questions'))
 
+@questions_bp.route('/update', methods=['GET', 'POST'])
+def update_questions():
+    if request.method == 'POST':
+        question_id = request.form.get('question_id')
+        if question_id:
+            # 不再创建线程，而是调用 .delay() 方法将任务发送到队列
+            process_question.delay(int(question_id))
+            flash(f'问题 {question_id} 的更新任务已加入队列。', 'info')
+            return jsonify({'status': 'queued', 'question_id': question_id})
+    
+    questions = Question.query.order_by(Question.id.desc()).all()
+    return render_template('update_questions.html', questions=questions)
+
 
 @questions_bp.route('/bulk_action', methods=['POST'])
 def bulk_action():
-    """处理批量操作（更新或删除）"""
     action = request.form.get('action')
     question_ids = request.form.getlist('question_ids')
     
@@ -99,17 +94,13 @@ def bulk_action():
         flash('没有选择任何题目。', 'warning')
         return redirect(url_for('questions.update_questions'))
     
-    app = current_app._get_current_object()
-    
     if action == 'update':
         for qid in question_ids:
-            # 为每个问题启动一个后台更新线程
-            thread = threading.Thread(target=process_question, args=(app, int(qid)))
-            thread.start()
-        flash(f'已开始在后台更新 {len(question_ids)} 个选定的问题。', 'info')
+            # 调用 .delay()
+            process_question.delay(int(qid))
+        flash(f'已将 {len(question_ids)} 个问题的更新任务加入后台队列。', 'info')
         
     elif action == 'delete':
-        # 批量删除
         Question.query.filter(Question.id.in_(question_ids)).delete(synchronize_session=False)
         db.session.commit()
         flash(f'已成功删除 {len(question_ids)} 个选定的问题。', 'success')

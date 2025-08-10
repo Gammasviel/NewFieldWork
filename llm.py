@@ -1,6 +1,6 @@
 import openai
 import httpx
-import json # Import the json library for safe parsing
+import ast  # Import the Abstract Syntax Tree module for safe literal evaluation
 from config import CONNECTION_ERROR_RETRIES
 from module_logger import get_module_logger
 
@@ -34,28 +34,35 @@ class LLMClient:
     def _parse_detailed_error(self, e: openai.APIError) -> str:
         """
         Safely parses the detailed error message from an OpenAI APIError.
-        Replaces the need for dangerous eval().
+        This handles string formats like "Error code: 400 - {'error': ...}".
+        It uses ast.literal_eval for safely parsing Python dicts from strings.
         """
-        # Modern openai library (>v1.0) has a `body` attribute with parsed JSON
+        # First, try the modern, preferred way: the .body attribute
         if e.body and isinstance(e.body, dict) and 'error' in e.body:
             return e.body['error'].get('message', str(e))
         
-        # Fallback for other structures or if body is not as expected
+        # If .body is not available, parse the raw e.message string
+        message_str = str(e.message)
         try:
-            # The error message might be a stringified JSON. We safely load it.
-            # The user-suggested slice e.message[18:] is brittle; we'll try parsing the whole thing.
-            error_data = json.loads(e.message)
-            if isinstance(error_data, dict) and 'error' in error_data:
-                 return error_data['error'].get('message', e.message)
-        except (json.JSONDecodeError, TypeError, KeyError):
-            # If parsing fails, just return the original message
-            pass
+            # Find the start of the dictionary (the first '{')
+            brace_index = message_str.find('{')
+            if brace_index != -1:
+                # Extract the dictionary part of the string
+                dict_string = message_str[brace_index:]
+                # Use ast.literal_eval, which is safe and handles single quotes
+                error_data = ast.literal_eval(dict_string)
+                if isinstance(error_data, dict) and 'error' in error_data:
+                     # Use .get() for safe access
+                     return error_data.get('error', {}).get('message', message_str)
+        except (ValueError, SyntaxError, TypeError, KeyError) as parse_error:
+            # If parsing fails for any reason, log it and return the original message
+            logger.warning(f"Could not parse detailed error from message string. Error: {parse_error}. Original: '{message_str}'")
         
-        return str(e) # Ultimate fallback
+        return message_str # Ultimate fallback
 
     def generate_response(self, prompt: str) -> str:
         response = None
-        # Requirement 1: Retry APIConnectionError up to CONNECTION_ERROR_RETRIES times (set to 5 in your config)
+        # Requirement 1: Retry APIConnectionError up to CONNECTION_ERROR_RETRIES times
         for i in range(CONNECTION_ERROR_RETRIES):
             try:
                 logger.debug(f"Attempting to generate response for model {self.name}. Try {i+1}/{CONNECTION_ERROR_RETRIES}.")
@@ -88,7 +95,6 @@ class LLMClient:
                 return "Unexpected client error" # Exit immediately
 
         if response is None:
-            # This should only be reached if the loop completes without success, which is handled above, but it's a good safeguard.
             return "Failed to get response"
 
         # Requirement 3: Handle unpacking response and fallback to finish_reason
@@ -99,17 +105,15 @@ class LLMClient:
                     content = message.content
                     logger.info(f"Successfully received response content from model {self.name}.")
                 else:
-                    # Content is None, fallback to finish_reason
                     content = response.choices[0].finish_reason
                     logger.warning(f"Response content was None for model {self.name}. Fallback to finish_reason: '{content}'")
             else:
                 content = "No choices in response"
-                logger.warning(f"Response from model {self.name} contained no choices.")
+                logger.error(f"Response from model {self.name} contained no choices.")
 
         except (AttributeError, IndexError, TypeError, KeyError) as e:
             logger.warning(f"Could not extract message content for model {self.name} due to {type(e).__name__}. Fallback to finish_reason.")
             try:
-                # Attempt to get finish_reason as a last resort
                 content = response.choices[0].finish_reason
             except Exception as final_e:
                 logger.error(f"Critical Parsing Failure: Could not even get finish_reason for model {self.name}. Error: {final_e}")

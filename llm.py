@@ -1,9 +1,10 @@
 import openai
 import httpx
+import json # Import the json library for safe parsing
 from config import CONNECTION_ERROR_RETRIES
 from module_logger import get_module_logger
 
-logger = get_module_logger('llm_clients')
+logger = get_module_logger(__name__)
 
 class LLMClient:
     clients: list[openai.OpenAI] = []
@@ -29,31 +30,94 @@ class LLMClient:
         self.index = (self.index + 1) % len(self.clients)
         logger.debug(f"Using API key index {self.index} for model {self.name}.")
         return self.clients[self.index]
-    
+
+    def _parse_detailed_error(self, e: openai.APIError) -> str:
+        """
+        Safely parses the detailed error message from an OpenAI APIError.
+        Replaces the need for dangerous eval().
+        """
+        # Modern openai library (>v1.0) has a `body` attribute with parsed JSON
+        if e.body and isinstance(e.body, dict) and 'error' in e.body:
+            return e.body['error'].get('message', str(e))
+        
+        # Fallback for other structures or if body is not as expected
+        try:
+            # The error message might be a stringified JSON. We safely load it.
+            # The user-suggested slice e.message[18:] is brittle; we'll try parsing the whole thing.
+            error_data = json.loads(e.message)
+            if isinstance(error_data, dict) and 'error' in error_data:
+                 return error_data['error'].get('message', e.message)
+        except (json.JSONDecodeError, TypeError, KeyError):
+            # If parsing fails, just return the original message
+            pass
+        
+        return str(e) # Ultimate fallback
+
     def generate_response(self, prompt: str) -> str:
-        content = ""
+        response = None
+        # Requirement 1: Retry APIConnectionError up to CONNECTION_ERROR_RETRIES times (set to 5 in your config)
         for i in range(CONNECTION_ERROR_RETRIES):
             try:
                 logger.debug(f"Attempting to generate response for model {self.name}. Try {i+1}/{CONNECTION_ERROR_RETRIES}.")
-                response = self.client.chat.completions.create(model=self.model, messages=[{'role': 'user', 'content': prompt}])
-                try:
-                    content = response.choices[0].message.content
-                    logger.info(f"Successfully received response from model {self.name}.")
-                except Exception as e:
-                    content = response.choices[0].finish_reason
-                    logger.warning(f"Could not get message content from response for model {self.name}. Reason: {content}. Error: {e}")
-                break # Success, exit loop
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{'role': 'user', 'content': prompt}]
+                )
+                break  # Success, exit the retry loop
+
             except openai.APIConnectionError as e:
                 logger.warning(f"APIConnectionError for model {self.name} on try {i+1}. Error: {e}")
                 if i == CONNECTION_ERROR_RETRIES - 1:
-                     logger.error(f"Connection failed for model {self.name} after {CONNECTION_ERROR_RETRIES} retries.")
-                     return "Connection error"
+                    logger.error(f"Connection finally failed for model {self.name} after {CONNECTION_ERROR_RETRIES} retries.")
+                    return "Connection error"
+                # Continue to the next iteration to retry
+            
+            # Requirement 2 & 4: Handle fatal (non-retryable) API errors
+            except (openai.InternalServerError, openai.BadRequestError) as e:
+                detailed_message = self._parse_detailed_error(e)
+                logger.error(f"Fatal API Error for model {self.name} (BadRequest/InternalServer): {detailed_message}")
+                return f"API Error: {detailed_message}" # Exit immediately, do not retry
+            
+            except openai.APIError as e: # Catch any other OpenAI API errors
+                detailed_message = self._parse_detailed_error(e)
+                logger.error(f"Unhandled API Error for model {self.name}: {detailed_message}")
+                return f"API Error: {detailed_message}" # Exit immediately, do not retry
+
             except Exception as e:
-                logger.error(f"An unexpected error occurred while calling model {self.name}: {e}")
-                if i == CONNECTION_ERROR_RETRIES - 1:
-                    return "Unexpected error"
-        
+                logger.critical(f"An unexpected non-API error occurred for model {self.name}: {e}", exc_info=True)
+                return "Unexpected client error" # Exit immediately
+
+        if response is None:
+            # This should only be reached if the loop completes without success, which is handled above, but it's a good safeguard.
+            return "Failed to get response"
+
+        # Requirement 3: Handle unpacking response and fallback to finish_reason
+        try:
+            if response.choices:
+                message = response.choices[0].message
+                if message and message.content is not None:
+                    content = message.content
+                    logger.info(f"Successfully received response content from model {self.name}.")
+                else:
+                    # Content is None, fallback to finish_reason
+                    content = response.choices[0].finish_reason
+                    logger.warning(f"Response content was None for model {self.name}. Fallback to finish_reason: '{content}'")
+            else:
+                content = "No choices in response"
+                logger.warning(f"Response from model {self.name} contained no choices.")
+
+        except (AttributeError, IndexError, TypeError, KeyError) as e:
+            logger.warning(f"Could not extract message content for model {self.name} due to {type(e).__name__}. Fallback to finish_reason.")
+            try:
+                # Attempt to get finish_reason as a last resort
+                content = response.choices[0].finish_reason
+            except Exception as final_e:
+                logger.error(f"Critical Parsing Failure: Could not even get finish_reason for model {self.name}. Error: {final_e}")
+                content = "Response parsing failed completely"
+            
         return content
+
+# The 'Clients' class below remains unchanged.
 
 class Clients:
     clients: dict[int: LLMClient] = {}

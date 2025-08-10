@@ -1,0 +1,36 @@
+# Flask and Web Framework Components
+Flask
+Flask-Migrate
+Flask-SQLAlchemy
+Flask-WTF
+WTForms
+blinker
+itsdangerous
+Jinja2
+MarkupSafe
+SQLAlchemy
+werkzeug
+
+# Celery and Task Queue
+celery
+redis
+kombu
+amqp
+billiard
+click
+click-didyoumean
+click-plugins
+click-repl
+gevent
+greenlet
+zope.event
+zope.interface
+
+# LLM and API Interaction
+openai
+httpx
+httpcore
+
+# Utilities
+python-dotenv
+SQLAlchemy-Mutable

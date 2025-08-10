@@ -1,9 +1,6 @@
-# .\routes\questions.py
-
 from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify, current_app
 from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
-from tasks import process_question
 
 questions_bp = Blueprint('questions', __name__, url_prefix='/question')
 
@@ -71,12 +68,15 @@ def delete_question(question_id):
     
     return redirect(url_for('questions.update_questions'))
 
+
 @questions_bp.route('/update', methods=['GET', 'POST'])
 def update_questions():
     if request.method == 'POST':
         question_id = request.form.get('question_id')
         if question_id:
-            # 不再创建线程，而是调用 .delay() 方法将任务发送到队列
+            # --- 把导入语句移到这里 ---
+            from tasks import process_question
+            
             process_question.delay(int(question_id))
             flash(f'问题 {question_id} 的更新任务已加入队列。', 'info')
             return jsonify({'status': 'queued', 'question_id': question_id})
@@ -95,8 +95,10 @@ def bulk_action():
         return redirect(url_for('questions.update_questions'))
     
     if action == 'update':
+        # --- 把导入语句移到这里 ---
+        from tasks import process_question
+        
         for qid in question_ids:
-            # 调用 .delay()
             process_question.delay(int(qid))
         flash(f'已将 {len(question_ids)} 个问题的更新任务加入后台队列。', 'info')
         

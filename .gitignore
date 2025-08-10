@@ -7,3 +7,4 @@ import_*.py
 routes/__pycache__/
 copy_tree.py
 _utils.py
+venv/

@@ -1,10 +1,10 @@
 # .\routes\index.py
 
 from flask import Blueprint, render_template
-from module_logger import get_module_logger # <-- 导入
+import logging # <-- 导入
 
 index_bp = Blueprint('index', __name__)
-logger = get_module_logger('index_routes') # <-- 初始化
+logger = logging.getLogger('index_routes') # <-- 初始化
 
 @index_bp.route('/')
 def index():

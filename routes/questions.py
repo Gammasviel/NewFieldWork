@@ -1,10 +1,10 @@
 from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify
 from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
-from module_logger import get_module_logger
+import logging
 
 questions_bp = Blueprint('questions', __name__, url_prefix='/question')
-logger = get_module_logger('question_routes')
+logger = logging.getLogger('question_routes')
 
 @questions_bp.route('/add', methods=['GET', 'POST'])
 def add_question():
@@ -77,7 +77,6 @@ def delete_question(question_id):
     
     return redirect(url_for('questions.update_questions'))
 
-
 @questions_bp.route('/update', methods=['GET', 'POST'])
 def update_questions():
     if request.method == 'POST':
@@ -87,13 +86,27 @@ def update_questions():
             
             logger.info(f"Queuing single question update task for question ID: {question_id}.")
             process_question.delay(int(question_id))
-            flash(f'问题 {question_id} 的更新任务已加入队列。', 'info')
-            return jsonify({'status': 'queued', 'question_id': question_id})
+            
+            # 【解决方案 2.1】不再使用 flash，直接在 JSON 中返回消息
+            return jsonify({
+                'status': 'queued', 
+                'question_id': question_id,
+                'message': f'问题 {question_id} 的更新任务已成功加入队列。'
+            })
     
     logger.info("Accessed question list and update page.")
     questions = Question.query.order_by(Question.id.desc()).all()
     return render_template('update_questions.html', questions=questions)
 
+# 【解决方案 2.2】添加一个新的路由，用于前端轮询问题状态
+@questions_bp.route('/status/<int:question_id>', methods=['GET'])
+def get_question_status(question_id):
+    question = Question.query.get_or_404(question_id)
+    # 检查这个问题是否已经有答案了
+    if question.answers:
+        return jsonify({'status': '已评估'})
+    else:
+        return jsonify({'status': '处理中'})
 
 @questions_bp.route('/bulk_action', methods=['POST'])
 def bulk_action():

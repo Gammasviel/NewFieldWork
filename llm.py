@@ -2,9 +2,9 @@ import openai
 import httpx
 import ast  # Import the Abstract Syntax Tree module for safe literal evaluation
 from config import CONNECTION_ERROR_RETRIES
-from module_logger import get_module_logger
+import logging
 
-logger = get_module_logger(__name__)
+logger = logging.getLogger('llm_clients')
 
 class LLMClient:
     clients: list[openai.OpenAI] = []

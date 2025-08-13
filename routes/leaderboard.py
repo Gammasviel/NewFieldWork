@@ -1,10 +1,10 @@
 from flask import Blueprint, request, render_template
 from sqlalchemy.orm import aliased
 from models import db, Dimension, Rating, Setting, Answer, Question, LLM
-from module_logger import get_module_logger
+import logging
 
 leaderboard_bp = Blueprint('leaderboard', __name__, url_prefix='/leaderboard')
-logger = get_module_logger('leaderboard_routes')
+logger = logging.getLogger('leaderboard_routes')
 
 @leaderboard_bp.route('/')
 def leaderboard():

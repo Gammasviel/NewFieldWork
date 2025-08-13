@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from models import db, Dimension, Question
-from module_logger import get_module_logger
+import logging
 
 dimensions_bp = Blueprint('dimensions', __name__, url_prefix='/dimension')
-logger = get_module_logger('dimension_routes')
+logger = logging.getLogger('dimension_routes')
 
 @dimensions_bp.route('/manage', methods=['GET', 'POST'])
 def manage_dimensions():

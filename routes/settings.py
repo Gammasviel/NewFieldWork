@@ -2,10 +2,10 @@ from flask import url_for, render_template, Blueprint, redirect, request
 from models import db, Setting
 from forms import SettingForm
 from config import DEFAULT_CRITERIA
-from module_logger import get_module_logger
+import logging
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
-logger = get_module_logger('setting_routes')
+logger = logging.getLogger('setting_routes')
 
 
 @settings_bp.route('/', methods=['GET', 'POST'])

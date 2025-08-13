@@ -1,22 +1,24 @@
+<!-- .\templates\update_questions.html -->
 {% extends "base.html" %}
 
 {% block content %}
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>问题列表与评估</h2>
+        <!-- 用于动态显示JS提示消息的容器 -->
+        <div id="alert-container" style="position: fixed; top: 80px; right: 20px; z-index: 1050;"></div>
     </div>
-
-    <!-- 唯一的表单，用于所有操作 -->
+    
+    <!-- ... (表单和表格的 HTML 部分保持不变) ... -->
     <form method="POST" id="bulk-action-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>共 {{ questions|length }} 个问题</span>
                 <div class="btn-group" role="group">
-                    <!-- 批量更新按钮，提交到 bulk_action -->
                     <button type="submit" name="action" value="update" formaction="{{ url_for('questions.bulk_action') }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-arrow-repeat"></i> 批量更新
                     </button>
-                    <!-- 批量删除按钮，提交到 bulk_action -->
                     <button type="submit" name="action" value="delete" formaction="{{ url_for('questions.bulk_action') }}" class="btn btn-sm btn-outline-danger" id="bulk-delete-btn">
                         <i class="bi bi-trash"></i> 批量删除
                     </button>
@@ -26,9 +28,7 @@
                 <table class="table table-striped table-hover mb-0">
                     <thead>
                         <tr>
-                            <th class="text-center" style="width: 5%;">
-                                <input class="form-check-input" type="checkbox" id="select-all">
-                            </th>
+                            <th class="text-center" style="width: 5%;"><input class="form-check-input" type="checkbox" id="select-all"></th>
                             <th style="width: 10%;">ID</th>
                             <th>问题内容</th>
                             <th style="width: 20%;">维度</th>
@@ -40,9 +40,7 @@
                     <tbody>
                         {% for question in questions %}
                         <tr id="question-row-{{ question.id }}">
-                            <td class="text-center">
-                                <input class="form-check-input question-checkbox" type="checkbox" name="question_ids" value="{{ question.id }}">
-                            </td>
+                            <td class="text-center"><input class="form-check-input question-checkbox" type="checkbox" name="question_ids" value="{{ question.id }}"></td>
                             <td>{{ question.id }}</td>
                             <td>
                                 <a href="{{ url_for('questions.question_detail', question_id=question.id) }}" class="text-decoration-none">
@@ -73,8 +71,6 @@
                             </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-outline-primary update-btn" data-id="{{ question.id }}">更新</button>
-                                
-                                <!-- 【修改点】单个删除按钮，使用 formaction 指向独立的删除路由 -->
                                 <button type="submit" class="btn btn-sm btn-outline-danger" 
                                         formaction="{{ url_for('questions.delete_question', question_id=question.id) }}"
                                         onclick="return confirm('确定要永久删除这个问题吗？此操作不可撤销。');">删除</button>
@@ -92,15 +88,60 @@
     </form>
 </div>
 
-<!-- JavaScript 部分保持不变 -->
+<!-- 【解决方案 2.3】重写 JavaScript 逻辑 -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const alertContainer = document.getElementById('alert-container');
+
+    // 函数：动态创建并显示一个 Bootstrap alert
+    function showAlert(message, category = 'info') {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `
+            <div class="alert alert-${category} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        alertContainer.append(wrapper);
+        // 5秒后自动消失
+        setTimeout(() => {
+            wrapper.remove();
+        }, 5000);
+    }
+
+    // 函数：轮询问题状态
+    function pollStatus(questionId, button, statusBadge) {
+        const intervalId = setInterval(() => {
+            fetch(`/question/status/${questionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === '已评估') {
+                        clearInterval(intervalId); // 停止轮询
+                        statusBadge.className = 'badge bg-success';
+                        statusBadge.textContent = '已评估';
+                        button.disabled = false;
+                        button.innerHTML = '更新';
+                        showAlert(`问题 ${questionId} 已成功完成评估！`, 'success');
+                    }
+                    // 如果状态仍是 '处理中', 则什么也不做，继续轮询
+                })
+                .catch(error => {
+                    console.error('Polling Error:', error);
+                    clearInterval(intervalId); // 出错时也停止轮询
+                    button.disabled = false;
+                    button.innerHTML = '更新';
+                    showAlert(`检查问题 ${questionId} 状态时出错。`, 'danger');
+                });
+        }, 3000); // 每3秒检查一次
+    }
+
     // --- 单个问题更新逻辑 ---
     document.querySelectorAll('.update-btn').forEach(button => {
         button.addEventListener('click', function() {
             const questionId = this.getAttribute('data-id');
             const statusBadge = document.getElementById('status-' + questionId);
             
+            // 1. 立即更新UI为处理中状态
             this.disabled = true;
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
             if (statusBadge) {
@@ -108,33 +149,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 statusBadge.textContent = '处理中';
             }
             
+            // 2. 发送请求
             fetch("{{ url_for('questions.update_questions') }}", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token() }}' },
                 body: `question_id=${questionId}`
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'processing') {
-                   setTimeout(() => {
-                        this.disabled = false;
-                        this.innerHTML = '更新';
-                        if (statusBadge) {
-                            statusBadge.className = 'badge bg-success';
-                            statusBadge.textContent = '已评估';
-                        }
-                   }, 5000); 
+                // 3. 处理任务入队的响应
+                if (data.status === 'queued') {
+                    showAlert(data.message, 'info'); // 动态显示成功入队的消息
+                    // 4. 开始轮询最终状态
+                    pollStatus(questionId, button, statusBadge);
+                } else {
+                    // 如果入队失败
+                    showAlert(data.message || `启动问题 ${questionId} 更新失败。`, 'danger');
+                    button.disabled = false;
+                    button.innerHTML = '更新';
+                    statusBadge.className = 'badge bg-danger';
+                    statusBadge.textContent = '失败';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                this.disabled = false;
-                this.innerHTML = '更新';
+                showAlert(`与服务器通信失败，请重试。`, 'danger');
+                button.disabled = false;
+                button.innerHTML = '更新';
             });
         });
     });
 
-    // --- 批量操作逻辑 ---
+    // --- 批量操作逻辑 (保持不变) ---
     const selectAllCheckbox = document.getElementById('select-all');
     const questionCheckboxes = document.querySelectorAll('.question-checkbox');
     const bulkActionForm = document.getElementById('bulk-action-form');
@@ -149,7 +195,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(bulkActionForm){
         bulkActionForm.addEventListener('submit', function(event) {
-            // 获取是哪个按钮触发了提交
             const submitter = event.submitter;
             if (submitter && submitter.value === 'delete') {
                 const selectedCount = document.querySelectorAll('.question-checkbox:checked').length;

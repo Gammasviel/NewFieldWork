@@ -2,10 +2,10 @@ from flask import Blueprint, render_template, flash, redirect, url_for, request
 from models import db, LLM
 from forms import LLMForm
 from llm import clients
-from module_logger import get_module_logger
+import logging
 
 models_bp = Blueprint('models', __name__, url_prefix='/model')
-logger = get_module_logger('model_routes')
+logger = logging.getLogger('model_routes')
 
 @models_bp.route('/manage')
 def model_management():

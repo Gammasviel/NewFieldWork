@@ -11,7 +11,7 @@ ACTIVATE_VENV="source ./venv/bin/activate"
 
 # 检查 tmux 会话是否已存在，如果存在则先杀死它
 tmux has-session -t $SESSION_NAME 2>/dev/null
-if [ $? == 0 ]; then
+if [ $? = 0 ]; then
     tmux kill-session -t $SESSION_NAME
 fi
 
@@ -27,7 +27,7 @@ tmux send-keys -t $SESSION_NAME:1 "flask run --host=0.0.0.0" C-m
 # 2. 创建第二个窗口，用于运行 Celery Worker
 tmux new-window -t $SESSION_NAME:2 -n 'Celery'
 tmux send-keys -t $SESSION_NAME:2 "$ACTIVATE_VENV" C-m
-tmux send-keys -t $SESSION_NAME:2 "celery -A tasks.celery worker --loglevel=info -P gevent" C-m
+tmux send-keys -t $SESSION_NAME:2 "celery -A tasks.celery worker --loglevel=info -P gevent -c 100" C-m
 
 # 3. 创建第三个窗口，留作一个 shell 方便操作
 tmux new-window -t $SESSION_NAME:3 -n 'Shell'

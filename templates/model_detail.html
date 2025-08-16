@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ model_name }} - 模型详情</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .header {
+            background-color: #6c757d;
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header text-center">
+        <div class="container">
+            <h1 class="display-4">{{ model_name }}</h1>
+            <p class="lead">模型详情页面</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title">详细数据</h5>
+                <p class="card-text">此页面为占位符。未来的模型详细分析和数据将在此处显示。</p>
+                <a href="{{ url_for('public_leaderboard.display_public_leaderboard') }}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left-circle"></i> 返回综合榜单
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0 text-muted">大模型风险评估系统</p>
+        </div>
+    </footer>
+
+</body>
+</html>

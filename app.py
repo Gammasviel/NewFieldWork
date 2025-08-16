@@ -1,12 +1,12 @@
 import logging
 from flask import Flask
 from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect # <-- 1. 导入模块
+from flask_wtf.csrf import CSRFProtect
 from models import db, Setting, LLM
 from llm import clients
 from config import DEFAULT_CRITERIA
 from routes import dimensions_bp, index_bp, leaderboard_bp, models_bp, questions_bp, settings_bp, public_leaderboard_bp
-from module_logger import setup_logging
+from utils import setup_logging  # <-- 修改导入
 
 setup_logging()
 
@@ -17,9 +17,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_pyfile('config.py')
     
-    # --- 解决方案 ---
-    csrf = CSRFProtect(app) # <-- 2. 在这里初始化 CSRF 保护
-    # --- 结束 ---
+    csrf = CSRFProtect(app)
 
     logger.info("Initializing database.")
     db.init_app(app)

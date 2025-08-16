@@ -7,7 +7,7 @@ from models import db, Dimension, Rating, Answer, Question, LLM
 # from tasks import process_question  <-- 移除此处的全局导入
 from config import RATERS
 
-public_leaderboard_bp = Blueprint('public_leaderboard', __name__, url_prefix='/public-leaderboard')
+public_leaderboard_bp = Blueprint('public_leaderboard', __name__)
 logger = logging.getLogger('public_leaderboard_routes')
 
 @public_leaderboard_bp.route('/')

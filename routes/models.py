@@ -4,7 +4,7 @@ from forms import LLMForm
 from llm import clients
 import logging
 
-models_bp = Blueprint('models', __name__, url_prefix='/model')
+models_bp = Blueprint('models', __name__, url_prefix='/dev/model')
 logger = logging.getLogger('model_routes')
 
 @models_bp.route('/manage')

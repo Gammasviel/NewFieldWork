@@ -4,7 +4,7 @@ from forms import SettingForm
 from config import DEFAULT_CRITERIA
 import logging
 
-settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
+settings_bp = Blueprint('settings', __name__, url_prefix='/dev/settings')
 logger = logging.getLogger('setting_routes')
 
 

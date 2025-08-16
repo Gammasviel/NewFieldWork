@@ -3,7 +3,7 @@
 from flask import Blueprint, render_template
 import logging # <-- 导入
 
-index_bp = Blueprint('index', __name__)
+index_bp = Blueprint('index', __name__, url_prefix='/dev/index')
 logger = logging.getLogger('index_routes') # <-- 初始化
 
 @index_bp.route('/')

@@ -3,7 +3,7 @@ from sqlalchemy.orm import aliased
 from models import db, Dimension, Rating, Setting, Answer, Question, LLM
 import logging
 
-leaderboard_bp = Blueprint('leaderboard', __name__, url_prefix='/leaderboard')
+leaderboard_bp = Blueprint('leaderboard', __name__, url_prefix='/dev/leaderboard')
 logger = logging.getLogger('leaderboard_routes')
 
 @leaderboard_bp.route('/')

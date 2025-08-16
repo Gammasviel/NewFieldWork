@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from models import db, Dimension, Question
 import logging
 
-dimensions_bp = Blueprint('dimensions', __name__, url_prefix='/dimension')
+dimensions_bp = Blueprint('dimensions', __name__, url_prefix='/dev/dimension')
 logger = logging.getLogger('dimension_routes')
 
 @dimensions_bp.route('/manage', methods=['GET', 'POST'])

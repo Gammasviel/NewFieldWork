@@ -3,7 +3,7 @@ from forms import QuestionForm
 from models import db, Dimension, Question, Answer, Rating
 import logging
 
-questions_bp = Blueprint('questions', __name__, url_prefix='/question')
+questions_bp = Blueprint('questions', __name__, url_prefix='/dev/question')
 logger = logging.getLogger('question_routes')
 
 @questions_bp.route('/add', methods=['GET', 'POST'])

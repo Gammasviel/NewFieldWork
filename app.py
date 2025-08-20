@@ -1,12 +1,9 @@
 import logging
 from flask import Flask
-import logging
-from flask import Flask
-from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect
+from extensions import db, migrate, csrf, icons
 # 1. 导入 Flask-Uploads 相关模块
-from flask_uploads import UploadSet, configure_uploads, IMAGES
-from models import db, Setting, LLM
+from flask_uploads import configure_uploads
+from models import Setting, LLM
 from llm import clients
 from config import DEFAULT_CRITERIA
 from routes import dimensions_bp, index_bp, leaderboard_bp, models_bp, questions_bp, settings_bp, public_leaderboard_bp
@@ -17,7 +14,6 @@ logger = logging.getLogger('main_app')
 
 # 2. 创建一个 UploadSet
 # 'icons' 是这个集合的名字，IMAGES 是一个预设的包含常见图片扩展名的元组
-icons = UploadSet('icons', IMAGES)
 
 def create_app():
     logger.info("Flask app creation started.")
@@ -26,12 +22,12 @@ def create_app():
     
     configure_uploads(app, icons)
     
-    csrf = CSRFProtect(app)
+    csrf.init_app(app)
 
     logger.info("Initializing database.")
     db.init_app(app)
     
-    migrate = Migrate(app, db)
+    migrate.init_app(app, db)
     
     logger.info("Registering blueprints.")
     app.register_blueprint(dimensions_bp)

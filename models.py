@@ -1,8 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy import PickleType
-
-db = SQLAlchemy()
+from extensions import db
 
 class Dimension(db.Model):
     id = db.Column(db.Integer, primary_key=True)

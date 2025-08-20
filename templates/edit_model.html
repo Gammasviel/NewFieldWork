@@ -57,7 +57,7 @@
             {{ form.icon.label(class="form-label") }}
             {% if llm and llm.icon %}
             <div class="mb-2">
-                <img src="{{ url_for('static', filename=config.UPLOAD_FOLDER.split('static/')[1] + '/' + llm.icon) }}" alt="Current Icon" style="max-width: 100px; max-height: 100px;">
+                <img src="{{ icons.url(llm.icon) }}" alt="Current Icon" style="max-width: 100px; max-height: 100px;">
                 <small class="d-block text-muted">当前图标</small>
             </div>
             {% endif %}

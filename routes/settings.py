@@ -1,5 +1,6 @@
 from flask import url_for, render_template, Blueprint, redirect, request
-from models import db, Setting
+from models import Setting
+from extensions import db
 from forms import SettingForm
 from config import DEFAULT_CRITERIA
 import logging

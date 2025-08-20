@@ -6,7 +6,8 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 import datetime
 
-from models import db, Answer, Question, Rating, LLM, Dimension
+from models import Answer, Question, Rating, LLM, Dimension
+from extensions import db
 from config import (
     RATING_TEMPLATE, 
     RATING_FAIL_RETRIES, 

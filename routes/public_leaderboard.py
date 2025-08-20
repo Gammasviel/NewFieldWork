@@ -2,7 +2,8 @@
 
 import logging
 from flask import Blueprint, render_template, flash, redirect, url_for
-from models import db, Question, LLM
+from models import Question, LLM
+from extensions import db
 from config import (
     RATERS, 
     QUADRANT_SCORE_THRESHOLD, 
@@ -10,6 +11,7 @@ from config import (
 )
 # <-- 1. 导入新的工具函数 -->
 from utils import generate_leaderboard_data
+from extensions import icons
 
 public_leaderboard_bp = Blueprint('public_leaderboard', __name__)
 logger = logging.getLogger('public_leaderboard_routes')
@@ -119,5 +121,6 @@ def model_detail(model_name):
         llm=llm,
         model_rank=model_rank,
         radar_data=radar_data,
-        bar_data=bar_data
+        bar_data=bar_data,
+        icons=icons
     )

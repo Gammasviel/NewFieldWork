@@ -2,7 +2,8 @@
 
 import logging
 from app import create_app
-from models import db, Question, Answer, Setting, LLM, Rating
+from extensions import db
+from models import Question, Answer, Setting, LLM, Rating
 from config import DEFAULT_CRITERIA, QUESTION_TEMPLATE, RATERS, DEFAULT_TOTAL_SCORE
 from llm import clients
 from celery import Celery, group

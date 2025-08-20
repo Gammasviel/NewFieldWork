@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
-from models import db, Dimension, Question
+from models import Dimension, Question
+from extensions import db
 import logging
 
 dimensions_bp = Blueprint('dimensions', __name__, url_prefix='/dev/dimension')

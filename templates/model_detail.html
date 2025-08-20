@@ -59,7 +59,8 @@
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">一级维度得分比例</h5>
-                        <div id="proportion-bar-chart" class="chart-container"></div>
+                        <!-- 解决方案 3: 将 div 的 ID 从 bar-chart 改为 pie-chart -->
+                        <div id="proportion-pie-chart" class="chart-container"></div>
                     </div>
                 </div>
             </div>
@@ -84,7 +85,20 @@
         const radarChart = echarts.init(radarChartDom);
         const radarData = {{ radar_data|tojson }};
         const radarOption = {
-            tooltip: { trigger: 'item' },
+            tooltip: { 
+                trigger: 'item',
+                // 解决方案 1: 添加 formatter 函数格式化浮点数
+                formatter: function(params) {
+                    let tooltipStr = `${params.name}<br/>`;
+                    const indicators = radarData.indicators;
+                    const values = params.data.value;
+                    for (let i = 0; i < indicators.length; i++) {
+                        // 将值格式化为两位小数
+                        tooltipStr += `${indicators[i].name}: ${values[i].toFixed(2)}<br/>`;
+                    }
+                    return tooltipStr;
+                }
+            },
             radar: {
                 indicator: radarData.indicators
             },
@@ -99,42 +113,48 @@
         };
         radarChart.setOption(radarOption);
 
-        // --- Chart 2: Proportional Bar Chart ---
-        const barChartDom = document.getElementById('proportion-bar-chart');
-        const barChart = echarts.init(barChartDom);
-        const barData = {{ bar_data|tojson }};
-        const barOption = {
+        // --- 解决方案 2 & 3: 将块状图替换为饼图 ---
+        const pieChartDom = document.getElementById('proportion-pie-chart');
+        const pieChart = echarts.init(pieChartDom);
+        const pieData = {{ bar_data|tojson }}; // 后端数据结构(bar_data)同样适用于饼图
+        
+        const pieOption = {
             tooltip: {
-                trigger: 'axis',
-                axisPointer: { type: 'shadow' },
-                formatter: function (params) {
-                    let series = params[0];
-                    return `${series.marker} ${series.name}<br/>得分: ${series.value.toFixed(2)}<br/>占比: ${series.data.percentage.toFixed(1)}%`;
-                }
+                trigger: 'item',
+                // 格式化 tooltip，正确显示名称、得分和百分比
+                formatter: '{a} <br/>{b}: {c} ({d}%)' // {a}系列名, {b}数据名, {c}值, {d}百分比
             },
-            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-            xAxis: { type: 'value', show: false },
-            yAxis: { type: 'category', data: ['得分比例'], show: false },
-            series: barData.map(item => ({
-                name: item.name,
-                type: 'bar',
-                stack: 'total',
+            legend: {
+                orient: 'vertical',
+                left: 'left'
+            },
+            series: [{
+                name: '得分来源',
+                type: 'pie',
+                radius: '60%', // 饼图大小
+                center: ['50%', '55%'], // 饼图位置
+                data: pieData, // 直接使用后端传来的数据
+                emphasis: {
+                    // 悬浮放大效果
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                },
                 label: {
+                    // 在饼图上显示维度名和百分比
                     show: true,
                     formatter: '{b}\n({d}%)'
-                },
-                emphasis: { focus: 'series' },
-                data: [{
-                    value: item.value,
-                    percentage: item.percentage
-                }]
-            }))
+                }
+            }]
         };
-        barChart.setOption(barOption);
+        pieChart.setOption(pieOption);
 
+        // 确保图表在窗口大小改变时自适应
         window.addEventListener('resize', function() {
             radarChart.resize();
-            barChart.resize();
+            pieChart.resize(); // 确保新的 pieChart 也能自适应
         });
     });
     </script>

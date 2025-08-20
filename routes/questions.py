@@ -1,6 +1,7 @@
 from flask import render_template, Blueprint, flash, redirect, url_for, request, jsonify
 from forms import QuestionForm
-from models import db, Dimension, Question, Answer, Rating
+from models import Dimension, Question, Answer, Rating
+from extensions import db
 import logging
 
 questions_bp = Blueprint('questions', __name__, url_prefix='/dev/question')

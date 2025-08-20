@@ -1,6 +1,7 @@
 from flask import Blueprint, request, render_template
 from sqlalchemy.orm import aliased
-from models import db, Dimension, Rating, Setting, Answer, Question, LLM
+from models import Dimension, Rating, Setting, Answer, Question, LLM
+from extensions import db
 from utils import calculate_weighted_average # <-- 1. Import the new function
 import logging
 

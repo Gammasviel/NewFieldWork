@@ -1,28 +1,17 @@
 # .\routes\models.py
 import os
 from flask import Blueprint, render_template, flash, redirect, url_for, request, current_app
-from werkzeug.utils import secure_filename
-from models import db, LLM
+# 1. 移除不再需要的 werkzeug 和 os
+from models import LLM
+from extensions import db
 from forms import LLMForm
 from llm import clients
 import logging
+# 2. 从 app 模块导入我们创建的 icons UploadSet
+from extensions import icons
 
 models_bp = Blueprint('models', __name__, url_prefix='/dev/model')
 logger = logging.getLogger('model_routes')
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
-
-# Helper function to save icon
-def save_icon(file):
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'])
-        os.makedirs(upload_path, exist_ok=True)
-        file.save(os.path.join(upload_path, filename))
-        return filename
-    return None
 
 @models_bp.route('/manage')
 def model_management():
@@ -45,17 +34,22 @@ def add_model():
             logger.warning("Add model failed: No valid API keys provided.")
             return render_template('edit_model.html', form=form)
         
-        # Handle file upload
+        # 4. 使用 Flask-Uploads 保存文件
         icon_filename = None
-        if 'icon' in request.files:
-            file = request.files['icon']
-            if file.filename != '':
-                icon_filename = save_icon(file)
+        if 'icon' in request.files and request.files['icon'].filename != '':
+            try:
+                # icons.save() 会处理验证、生成安全唯一的文件名并保存
+                icon_filename = icons.save(request.files['icon'])
+            except Exception as e:
+                flash(f'图标上传失败: {e}', 'danger')
+                return render_template('edit_model.html', form=form, action='添加')
 
         new_llm = LLM(
             name=form.name.data, model=form.model.data,
             base_url=form.base_url.data, api_keys=api_keys,
-            desc=form.desc.data, icon=icon_filename, comment=form.comment.data
+            desc=form.desc.data, 
+            icon=icon_filename,  # 保存由 Flask-Uploads 返回的新文件名
+            comment=form.comment.data
         )
         db.session.add(new_llm)
         db.session.commit()
@@ -88,11 +82,16 @@ def edit_model(model_id):
             logger.warning(f"Edit model ID {model_id} failed: No valid API keys provided.")
             return render_template('edit_model.html', form=form, action='编辑')
         
-        # Handle file upload for edit
-        if 'icon' in request.files:
-            file = request.files['icon']
-            if file and file.filename != '':
-                llm.icon = save_icon(file)
+        # 5. 编辑时同样使用 Flask-Uploads
+        if 'icon' in request.files and request.files['icon'].filename != '':
+            try:
+                # 如果之前有图标，可以考虑删除旧文件
+                # if llm.icon:
+                #     os.remove(icons.path(llm.icon))
+                llm.icon = icons.save(request.files['icon'])
+            except Exception as e:
+                flash(f'图标上传失败: {e}', 'danger')
+                return render_template('edit_model.html', form=form, action='编辑', llm=llm)
 
         llm.name = form.name.data
         llm.model = form.model.data
@@ -108,7 +107,7 @@ def edit_model(model_id):
         logger.info(f"Successfully updated model '{llm.name}' (ID: {model_id}).")
         return redirect(url_for('models.model_management'))
     
-    return render_template('edit_model.html', form=form, action='编辑', llm=llm)
+    return render_template('edit_model.html', form=form, action='编辑', llm=llm, icons=icons)
 
 
 

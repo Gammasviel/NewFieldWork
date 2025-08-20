@@ -23,11 +23,10 @@
     </header>
 
     <div class="container">
-        <!-- ... (模型信息卡片和图表部分不变) ... -->
         <div class="card shadow-sm mb-4">
             <div class="card-body d-flex align-items-center">
                 {% if llm.icon %}
-                    <img src="{{ icons.url(llm.icon) }}" alt="{{ llm.name }} Icon" class="model-icon rounded-circle">
+                    <img src="{{ url_for('static', filename='uploads/icons/' + llm.icon) }}" alt="{{ llm.name }} Icon" class="model-icon rounded-circle">
                 {% else %}
                     <div class="model-icon bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white fs-1">
                         <i class="bi bi-robot"></i>

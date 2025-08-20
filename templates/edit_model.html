@@ -1,10 +1,12 @@
+<!-- .\templates\edit_model.html -->
 {% extends "base.html" %}
 
 {% block content %}
 <div class="container">
     <h2 class="mb-4">{{ action }}大模型</h2>
     
-    <form method="POST">
+    <!-- 解决方案：确保 form 标签包含 enctype="multipart/form-data" -->
+    <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         
         <div class="row mb-4">

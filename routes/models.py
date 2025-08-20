@@ -80,18 +80,30 @@ def edit_model(model_id):
         if not api_keys:
             flash('至少需要一个有效的API密钥', 'danger')
             logger.warning(f"Edit model ID {model_id} failed: No valid API keys provided.")
-            return render_template('edit_model.html', form=form, action='编辑')
+            return render_template('edit_model.html', form=form, action='编辑', llm=llm, icons=icons)
         
-        # 5. 编辑时同样使用 Flask-Uploads
-        if 'icon' in request.files and request.files['icon'].filename != '':
+        # 使用 form.icon.data 并添加日志
+        file_data = form.icon.data
+        if file_data:
+            logger.info(f"New icon file detected for model ID {model_id}: {file_data.filename}")
             try:
-                # 如果之前有图标，可以考虑删除旧文件
-                # if llm.icon:
-                #     os.remove(icons.path(llm.icon))
-                llm.icon = icons.save(request.files['icon'])
+                # 删除旧图标 (可选，但推荐)
+                if llm.icon:
+                    try:
+                        os.remove(icons.path(llm.icon))
+                        logger.info(f"Removed old icon: {llm.icon}")
+                    except OSError as e:
+                        logger.warning(f"Could not remove old icon {llm.icon}: {e}")
+                
+                # 保存新图标
+                llm.icon = icons.save(file_data)
+                logger.info(f"Successfully saved new icon as: {llm.icon}")
             except Exception as e:
+                logger.error(f"Icon upload failed for model ID {model_id}: {e}", exc_info=True)
                 flash(f'图标上传失败: {e}', 'danger')
-                return render_template('edit_model.html', form=form, action='编辑', llm=llm)
+                return render_template('edit_model.html', form=form, action='编辑', llm=llm, icons=icons)
+        else:
+            logger.info(f"No new icon file provided for model ID {model_id}.")
 
         llm.name = form.name.data
         llm.model = form.model.data

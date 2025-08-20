@@ -15,6 +15,7 @@
 </head>
 <body>
 
+    <!-- ... (HTML body and header remain unchanged) ... -->
     <header class="header text-center">
         <div class="container">
             <h1 class="display-4">{{ llm.name }}</h1>
@@ -59,7 +60,6 @@
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">一级维度得分比例</h5>
-                        <!-- 解决方案 3: 将 div 的 ID 从 bar-chart 改为 pie-chart -->
                         <div id="proportion-pie-chart" class="chart-container"></div>
                     </div>
                 </div>
@@ -80,20 +80,18 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- Chart 1: Radar Chart ---
+        // --- Radar Chart (unchanged) ---
         const radarChartDom = document.getElementById('radar-chart');
         const radarChart = echarts.init(radarChartDom);
         const radarData = {{ radar_data|tojson }};
         const radarOption = {
             tooltip: { 
                 trigger: 'item',
-                // 解决方案 1: 添加 formatter 函数格式化浮点数
                 formatter: function(params) {
                     let tooltipStr = `${params.name}<br/>`;
                     const indicators = radarData.indicators;
                     const values = params.data.value;
                     for (let i = 0; i < indicators.length; i++) {
-                        // 将值格式化为两位小数
                         tooltipStr += `${indicators[i].name}: ${values[i].toFixed(2)}<br/>`;
                     }
                     return tooltipStr;
@@ -113,16 +111,22 @@
         };
         radarChart.setOption(radarOption);
 
-        // --- 解决方案 2 & 3: 将块状图替换为饼图 ---
+        // --- Pie Chart (tooltip updated) ---
         const pieChartDom = document.getElementById('proportion-pie-chart');
         const pieChart = echarts.init(pieChartDom);
-        const pieData = {{ bar_data|tojson }}; // 后端数据结构(bar_data)同样适用于饼图
+        const pieData = {{ bar_data|tojson }};
         
         const pieOption = {
             tooltip: {
                 trigger: 'item',
-                // 格式化 tooltip，正确显示名称、得分和百分比
-                formatter: '{a} <br/>{b}: {c} ({d}%)' // {a}系列名, {b}数据名, {c}值, {d}百分比
+                // --- 解决方案: 将格式化字符串替换为函数 ---
+                formatter: function(params) {
+                    // params.value 是原始分数值
+                    // params.percent 是 ECharts 计算好的百分比
+                    // toFixed(2) 强制显示两位小数
+                    const score = params.value.toFixed(2); 
+                    return `${params.seriesName}<br/>${params.name}: ${score} (${params.percent}%)`;
+                }
             },
             legend: {
                 orient: 'vertical',
@@ -131,11 +135,10 @@
             series: [{
                 name: '得分来源',
                 type: 'pie',
-                radius: '60%', // 饼图大小
-                center: ['50%', '55%'], // 饼图位置
-                data: pieData, // 直接使用后端传来的数据
+                radius: '60%',
+                center: ['50%', '55%'],
+                data: pieData,
                 emphasis: {
-                    // 悬浮放大效果
                     itemStyle: {
                         shadowBlur: 10,
                         shadowOffsetX: 0,
@@ -143,7 +146,6 @@
                     }
                 },
                 label: {
-                    // 在饼图上显示维度名和百分比
                     show: true,
                     formatter: '{b}\n({d}%)'
                 }
@@ -151,10 +153,10 @@
         };
         pieChart.setOption(pieOption);
 
-        // 确保图表在窗口大小改变时自适应
+        // --- Resize listener (unchanged) ---
         window.addEventListener('resize', function() {
             radarChart.resize();
-            pieChart.resize(); // 确保新的 pieChart 也能自适应
+            pieChart.resize();
         });
     });
     </script>

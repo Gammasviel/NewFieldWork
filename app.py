@@ -1,21 +1,30 @@
 import logging
 from flask import Flask
+import logging
+from flask import Flask
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
+# 1. 导入 Flask-Uploads 相关模块
+from flask_uploads import UploadSet, configure_uploads, IMAGES
 from models import db, Setting, LLM
 from llm import clients
 from config import DEFAULT_CRITERIA
 from routes import dimensions_bp, index_bp, leaderboard_bp, models_bp, questions_bp, settings_bp, public_leaderboard_bp
-from utils import setup_logging  # <-- 修改导入
+from utils import setup_logging
 
 setup_logging()
-
 logger = logging.getLogger('main_app')
+
+# 2. 创建一个 UploadSet
+# 'icons' 是这个集合的名字，IMAGES 是一个预设的包含常见图片扩展名的元组
+icons = UploadSet('icons', IMAGES)
 
 def create_app():
     logger.info("Flask app creation started.")
     app = Flask(__name__)
     app.config.from_pyfile('config.py')
+    
+    configure_uploads(app, icons)
     
     csrf = CSRFProtect(app)
 
@@ -36,6 +45,7 @@ def create_app():
     with app.app_context():
         logger.info("Creating all database tables.")
         db.create_all()
+        # import_datas(app)
         
         all_llms = LLM.query.all()
         logger.info(f"Creating LLM clients for {len(all_llms)} models.")

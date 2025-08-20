@@ -5,14 +5,17 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>问题列表与评估</h2>
-        <!-- 用于动态显示JS提示消息的容器 -->
         <div id="alert-container" style="position: fixed; top: 80px; right: 20px; z-index: 1050;"></div>
     </div>
     
-    <!-- ... (表单和表格的 HTML 部分保持不变) ... -->
     <form method="POST" id="bulk-action-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <div class="card">
+        <!-- 
+            解决方案: 在表格上添加一个 data-* 属性来存储 URL 模板。
+            我们用一个占位符 (如 0) 来生成模板，稍后用 JS 替换它。
+        -->
+        <div class="card" 
+             data-status-url-template="{{ url_for('questions.get_question_status', question_id=0) }}">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>共 {{ questions|length }} 个问题</span>
                 <div class="btn-group" role="group">
@@ -26,6 +29,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover mb-0">
+                    <!-- 表头部分保持不变 -->
                     <thead>
                         <tr>
                             <th class="text-center" style="width: 5%;"><input class="form-check-input" type="checkbox" id="select-all"></th>
@@ -88,10 +92,11 @@
     </form>
 </div>
 
-<!-- 【解决方案 2.3】重写 JavaScript 逻辑 -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const alertContainer = document.getElementById('alert-container');
+    // 从 data-* 属性中获取 URL 模板
+    const statusUrlTemplate = document.querySelector('.card').dataset.statusUrlTemplate;
 
     // 函数：动态创建并显示一个 Bootstrap alert
     function showAlert(message, category = 'info') {
@@ -112,29 +117,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // 函数：轮询问题状态
     function pollStatus(questionId, button, statusBadge) {
         const intervalId = setInterval(() => {
-            fetch(`/question/status/${questionId}`)
+            // 解决方案: 使用模板替换占位符来生成正确的 URL
+            const url = statusUrlTemplate.replace('0', questionId);
+            
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === '已评估') {
-                        clearInterval(intervalId); // 停止轮询
+                        clearInterval(intervalId);
                         statusBadge.className = 'badge bg-success';
                         statusBadge.textContent = '已评估';
                         button.disabled = false;
                         button.innerHTML = '更新';
                         showAlert(`问题 ${questionId} 已成功完成评估！`, 'success');
                     }
-                    // 如果状态仍是 '处理中', 则什么也不做，继续轮询
                 })
                 .catch(error => {
                     console.error('Polling Error:', error);
-                    clearInterval(intervalId); // 出错时也停止轮询
+                    clearInterval(intervalId);
                     button.disabled = false;
                     button.innerHTML = '更新';
                     showAlert(`检查问题 ${questionId} 状态时出错。`, 'danger');
                 });
-        }, 3000); // 每3秒检查一次
+        }, 3000);
     }
-
+    
     // --- 单个问题更新逻辑 ---
     document.querySelectorAll('.update-btn').forEach(button => {
         button.addEventListener('click', function() {

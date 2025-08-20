@@ -1,4 +1,7 @@
-from flask import Blueprint, render_template, flash, redirect, url_for, request
+# .\routes\models.py
+import os
+from flask import Blueprint, render_template, flash, redirect, url_for, request, current_app
+from werkzeug.utils import secure_filename
 from models import db, LLM
 from forms import LLMForm
 from llm import clients
@@ -7,16 +10,28 @@ import logging
 models_bp = Blueprint('models', __name__, url_prefix='/dev/model')
 logger = logging.getLogger('model_routes')
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+
+# Helper function to save icon
+def save_icon(file):
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'])
+        os.makedirs(upload_path, exist_ok=True)
+        file.save(os.path.join(upload_path, filename))
+        return filename
+    return None
+
 @models_bp.route('/manage')
 def model_management():
-    """模型管理页面"""
     logger.info("Accessed model management page.")
     llms = LLM.query.all()
     return render_template('model_management.html', llms=llms)
 
 @models_bp.route('/add', methods=['GET', 'POST'])
 def add_model():
-    """添加新模型"""
     form = LLMForm()
     if not form.api_keys.entries:
         form.api_keys.append_entry()
@@ -30,11 +45,17 @@ def add_model():
             logger.warning("Add model failed: No valid API keys provided.")
             return render_template('edit_model.html', form=form)
         
+        # Handle file upload
+        icon_filename = None
+        if 'icon' in request.files:
+            file = request.files['icon']
+            if file.filename != '':
+                icon_filename = save_icon(file)
+
         new_llm = LLM(
-            name=form.name.data,
-            model=form.model.data,
-            base_url=form.base_url.data,
-            api_keys=api_keys,
+            name=form.name.data, model=form.model.data,
+            base_url=form.base_url.data, api_keys=api_keys,
+            desc=form.desc.data, icon=icon_filename, comment=form.comment.data
         )
         db.session.add(new_llm)
         db.session.commit()
@@ -49,7 +70,6 @@ def add_model():
 
 @models_bp.route('/edit/<int:model_id>', methods=['GET', 'POST'])
 def edit_model(model_id):
-    """编辑现有模型"""
     llm = LLM.query.get_or_404(model_id)
     form = LLMForm(obj=llm)
     
@@ -59,7 +79,6 @@ def edit_model(model_id):
             form.api_keys.append_entry(key)
         if not form.api_keys.entries:
             form.api_keys.append_entry()
-    
     if form.validate_on_submit():
         logger.info(f"Attempting to update model ID: {model_id}.")
         api_keys = [key.data for key in form.api_keys if key.data.strip()]
@@ -69,10 +88,18 @@ def edit_model(model_id):
             logger.warning(f"Edit model ID {model_id} failed: No valid API keys provided.")
             return render_template('edit_model.html', form=form, action='编辑')
         
+        # Handle file upload for edit
+        if 'icon' in request.files:
+            file = request.files['icon']
+            if file and file.filename != '':
+                llm.icon = save_icon(file)
+
         llm.name = form.name.data
         llm.model = form.model.data
         llm.base_url = form.base_url.data
         llm.api_keys = api_keys
+        llm.desc = form.desc.data
+        llm.comment = form.comment.data
         
         clients.create_client(llm.id, llm.name, llm.model, llm.base_url, llm.api_keys, llm.proxy)
         
@@ -81,7 +108,8 @@ def edit_model(model_id):
         logger.info(f"Successfully updated model '{llm.name}' (ID: {model_id}).")
         return redirect(url_for('models.model_management'))
     
-    return render_template('edit_model.html', form=form, action='编辑')
+    return render_template('edit_model.html', form=form, action='编辑', llm=llm)
+
 
 
 @models_bp.route('/delete/<int:model_id>', methods=['POST'])

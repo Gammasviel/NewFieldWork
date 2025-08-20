@@ -48,6 +48,27 @@
             <div class="form-text">可以添加多个API密钥，系统会自动轮询使用</div>
         </div>
         
+        <div class="mb-3">
+            {{ form.desc.label(class="form-label") }}
+            {{ form.desc(class="form-control", rows=4) }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.icon.label(class="form-label") }}
+            {% if llm and llm.icon %}
+            <div class="mb-2">
+                <img src="{{ url_for('static', filename=config.UPLOAD_FOLDER.split('static/')[1] + '/' + llm.icon) }}" alt="Current Icon" style="max-width: 100px; max-height: 100px;">
+                <small class="d-block text-muted">当前图标</small>
+            </div>
+            {% endif %}
+            {{ form.icon(class="form-control") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.comment.label(class="form-label") }}
+            {{ form.comment(class="form-control", rows=4) }}
+        </div>
+        
         <button type="submit" class="btn btn-primary">保存模型</button>
         <a href="{{ url_for('models.model_management') }}" class="btn btn-secondary">取消</a>
     </form>

@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, TextAreaField, SubmitField, FieldList, FormField, Form, FloatField
+from flask_wtf.file import FileField, FileAllowed
 from wtforms.validators import DataRequired, Optional, NumberRange
 
 class DimensionForm(FlaskForm):
@@ -37,6 +38,7 @@ class APIKeyForm(Form):
     """用于动态添加API密钥的表单"""
     key = StringField('API密钥', validators=[DataRequired()])
 
+
 class LLMForm(FlaskForm):
     name = StringField('模型简称', validators=[DataRequired()])
     model = StringField('模型全称', validators=[DataRequired()])
@@ -45,4 +47,13 @@ class LLMForm(FlaskForm):
         StringField('API密钥', validators=[DataRequired()]),
         min_entries=1
     )
+    # --- 新增字段 ---
+    desc = TextAreaField('模型描述', validators=[Optional()])
+    # Use FileField for the icon upload
+    icon = FileField('模型图标 (可选)', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'png', 'gif', 'svg'], '仅允许图片文件!')
+    ])
+    comment = TextAreaField('模型评价', validators=[Optional()])
+    # --- 结束 ---
     submit = SubmitField('保存模型')

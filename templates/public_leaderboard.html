@@ -182,7 +182,7 @@
         // --- 通用函数 ---
         function goToModelDetail(modelName) {
             if (modelName) {
-                window.location.href = `/model-detail/${encodeURIComponent(modelName)}`;
+                window.location.href = `/model/detail/${encodeURIComponent(modelName)}`;
             }
         }
         
@@ -253,8 +253,8 @@
                 tooltip: {
                     formatter: (params) => `${params.value[2]}<br/>响应率: ${params.value[0].toFixed(2)}%<br/>总得分: ${params.value[1].toFixed(2)}`
                 },
-                xAxis: { name: '响应率 (回答开放程度)', min: 80, max: 100, axisLabel: { formatter: '{value}%' } },
-                yAxis: { name: '总得分 (内容审核严格程度)', min: 2, max: 5 },
+                xAxis: { name: '响应率 (回答开放程度)', min: 85, max: 100, axisLabel: { formatter: '{value}%' } },
+                yAxis: { name: '总得分 (内容审核严格程度)', min: 2, max: 4 },
                 series: [{
                     name: '模型',
                     type: 'scatter',

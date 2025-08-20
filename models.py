@@ -87,6 +87,12 @@ class LLM(db.Model):
     base_url = db.Column(db.String(200), nullable=False)
     api_keys = db.Column(MutableList.as_mutable(PickleType), nullable=False)  # 多个API密钥列表
     proxy = db.Column(db.String(200), default = '')  # 代理地址
+    # --- 新增字段 ---
+    desc = db.Column(db.Text, nullable=True)  # 模型描述
+    icon = db.Column(db.String(100), nullable=True)  # 存储图标的文件名
+    comment = db.Column(db.Text, nullable=True)  # 模型评价
+    # --- 结束 ---
+    
     
     def __repr__(self):
         return f'<LLM {self.name} ({self.model})>'

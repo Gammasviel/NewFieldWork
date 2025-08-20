@@ -9,7 +9,14 @@
             <div class="row mb-3">
                 <div class="col-md-4">
                     {{ form.level1.label(class="form-label") }}
-                    {{ form.level1(class="form-select") }}
+                    <!-- 
+                        解决方案: 在 select 元素上添加一个 data-url 属性来存储由 url_for 生成的 URL。
+                        我们不需要占位符，因为这个 URL 是固定的。
+                    -->
+                    {{ form.level1(
+                        class="form-select", 
+                        **{'data-url': url_for('dimensions.get_dimensions')}
+                    ) }}
                 </div>
                 <div class="col-md-4">
                     {{ form.level2.label(class="form-label") }}
@@ -21,21 +28,22 @@
                 </div>
             </div>
             
+            <!-- 其余的表单元素保持不变 -->
             <div class="mb-3">
                 {{ form.question_type.label(class="form-label") }}
                 {{ form.question_type(class="form-select") }}
             </div>
-            
+
             <div class="mb-3">
                 {{ form.content.label(class="form-label") }}
                 {{ form.content(class="form-control", rows=4) }}
             </div>
-            
+
             <div class="mb-3" id="answer-field">
                 {{ form.answer.label(class="form-label") }}
                 {{ form.answer(class="form-control", rows=3) }}
             </div>
-            
+
             <button type="submit" class="btn btn-primary">添加题目</button>
         </form>
     </div>
@@ -48,6 +56,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     const level1Select = document.getElementById('level1');
     const level2Select = document.getElementById('level2');
     const level3Select = document.getElementById('level3');
+    // 解决方案: 从 data-* 属性读取基础 URL
+    const dimensionsUrl = level1Select.dataset.url;
     
     // 从 Jinja2 模板获取后端传来的、已选择的值（用于错误回显）
     const selectedL2Id = '{{ form.level2.data or "" }}';
@@ -56,11 +66,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     function toggleAnswerField() {
         answerField.style.display = (questionType.value === 'objective') ? 'block' : 'none';
     }
-    
-    // 首次加载时运行
     toggleAnswerField();
-    
-    // 监听变化
     questionType.addEventListener('change', toggleAnswerField);
     
     /**
@@ -99,10 +105,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 当一级维度变化时，更新二级维度
     level1Select.addEventListener('change', async function() {
         const level1Id = this.value;
-        // 清空三级维度
         level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
         if (level1Id) {
-            await populateDropdown(`/dimension/get?level=2&parent=${level1Id}`, level2Select, '请选择二级维度', '');
+            // 解决方案: 使用从 data-* 属性中获取的 URL
+            const url = `${dimensionsUrl}?level=2&parent=${level1Id}`;
+            await populateDropdown(url, level2Select, '请选择二级维度', '');
         } else {
             level2Select.innerHTML = '<option value="">请先选择一级维度</option>';
         }
@@ -112,22 +119,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     level2Select.addEventListener('change', async function() {
         const level2Id = this.value;
         if (level2Id) {
-            await populateDropdown(`/dimension/get?level=3&parent=${level2Id}`, level3Select, '请选择三级维度', '');
+            // 解决方案: 使用从 data-* 属性中获取的 URL
+            const url = `${dimensionsUrl}?level=3&parent=${level2Id}`;
+            await populateDropdown(url, level3Select, '请选择三级维度', '');
         } else {
             level3Select.innerHTML = '<option value="">请先选择二级维度</option>';
         }
     });
     
-    // --- 页面初始加载逻辑 ---
-    // 这个部分至关重要，它处理了因表单验证失败而重新加载页面时的数据恢复
+    // --- 页面初始加载逻辑（同样需要修复） ---
     const initialL1Id = level1Select.value;
     if (initialL1Id) {
-        // 如果一级维度已有值，则加载对应的二级维度，并选中之前已选的二级维度
-        await populateDropdown(`/dimension/get?level=2&parent=${initialL1Id}`, level2Select, '请选择二级维度', selectedL2Id);
+        const urlL2 = `${dimensionsUrl}?level=2&parent=${initialL1Id}`;
+        await populateDropdown(urlL2, level2Select, '请选择二级维度', selectedL2Id);
         
-        // 如果二级维度也已有值，则加载对应的三级维度，并选中之前已选的三级维度
         if (level2Select.value) {
-            await populateDropdown(`/dimension/get?level=3&parent=${level2Select.value}`, level3Select, '请选择三级维度', selectedL3Id);
+            const urlL3 = `${dimensionsUrl}?level=3&parent=${level2Select.value}`;
+            await populateDropdown(urlL3, level3Select, '请选择三级维度', selectedL3Id);
         }
     }
 });

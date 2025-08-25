@@ -1,11 +1,10 @@
 <!-- .\templates\edit_model.html -->
-{% extends "base.html" %}
+ {% extends "base.html" %}
 
 {% block content %}
 <div class="container">
     <h2 class="mb-4">{{ action }}大模型</h2>
-    
-    <!-- 解决方案：确保 form 标签包含 enctype="multipart/form-data" -->
+
     <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         
@@ -59,7 +58,8 @@
             {{ form.icon.label(class="form-label") }}
             {% if llm and llm.icon %}
             <div class="mb-2">
-                <img src="{{ icons.url(llm.icon) }}" alt="Current Icon" style="max-width: 100px; max-height: 100px;">
+                <!-- 解决方案：同样在这里替换 icons.url() -->
+                <img src="{{ url_for('static', filename='uploads/icons/' + llm.icon) }}" alt="Current Icon" style="max-width: 100px; max-height: 100px;">
                 <small class="d-block text-muted">当前图标</small>
             </div>
             {% endif %}

@@ -1,0 +1,284 @@
+/* 科技主题色彩系统 */
+:root {
+    --tech-bg-dark: #0a0e1a;
+    --tech-bg-darker: #060911;
+    --tech-bg-card: #0f1629;
+    --tech-border: #1e2a4a;
+    --tech-primary: #00d4ff;
+    --tech-secondary: #667eea;
+    --tech-accent: #f59e0b;
+    --tech-success: #10b981;
+    --tech-danger: #ef4444;
+    --tech-text: #e2e8f0;
+    --tech-text-muted: #94a3b8;
+    --tech-gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --tech-gradient-2: linear-gradient(135deg, #00d4ff 0%, #0891b2 100%);
+    --tech-glow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
+
+/* 全局样式 */
+body {
+    background: var(--tech-bg-dark);
+    color: var(--tech-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-x: hidden;
+}
+
+/* 动态背景 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+    z-index: -1;
+    animation: bgAnimation 20s ease infinite;
+}
+
+@keyframes bgAnimation {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.1) rotate(5deg); }
+}
+
+/* 英雄区域 */
+.tech-hero {
+    background: linear-gradient(180deg, var(--tech-bg-darker) 0%, var(--tech-bg-dark) 100%);
+    padding: 4rem 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.tech-hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--tech-primary), transparent);
+    animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.tech-hero h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: var(--tech-gradient-2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+    margin-bottom: 1rem;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { filter: brightness(1); }
+    to { filter: brightness(1.2); }
+}
+
+.tech-hero .lead {
+    color: var(--tech-text-muted);
+    font-size: 1.25rem;
+    font-weight: 300;
+}
+
+/* 卡片 */
+.tech-card {
+    background: var(--tech-bg-card);
+    border: 1px solid var(--tech-border);
+    border-radius: 1rem;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.tech-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--tech-gradient-2);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.tech-card:hover::before {
+    transform: translateX(0);
+}
+
+.tech-card:hover {
+    border-color: var(--tech-primary);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+}
+
+.tech-card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--tech-primary);
+    margin-bottom: 1.5rem;
+}
+
+/* 按钮 */
+.tech-btn {
+    background: var(--tech-gradient-2);
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.tech-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.tech-btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.tech-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+}
+
+/* 表格 */
+.tech-table {
+    background: var(--tech-bg-card);
+    border: 1px solid var(--tech-border);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.tech-table table {
+    margin: 0;
+}
+
+.tech-table th {
+    background: var(--tech-bg-darker);
+    color: var(--tech-primary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    padding: 1rem;
+    border-bottom: 2px solid var(--tech-border);
+}
+
+.tech-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(30, 42, 74, 0.5);
+    color: var(--tech-text);
+}
+
+.tech-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.tech-table tbody tr:hover {
+    background: rgba(0, 212, 255, 0.05);
+    transform: translateX(5px);
+}
+
+.tech-table a {
+    color: var(--tech-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.tech-table a:hover {
+    color: var(--tech-accent);
+    text-shadow: 0 0 10px currentColor;
+}
+
+/* 图表容器 */
+.tech-chart-container {
+    background: var(--tech-bg-card);
+    border: 1px solid var(--tech-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    height: 100%;
+}
+
+/* 徽章 */
+.tech-badge {
+    background: var(--tech-gradient-2);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.tech-badge-success {
+    background: linear-gradient(135deg, var(--tech-success) 0%, #059669 100%);
+}
+
+.tech-badge-warning {
+    background: linear-gradient(135deg, var(--tech-accent) 0%, #d97706 100%);
+}
+
+/* 统计数字 */
+.tech-stat {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: var(--tech-gradient-2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 加载动画 */
+.tech-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--tech-primary);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .tech-hero h1 {
+        font-size: 2.5rem;
+    }
+    
+    .tech-card {
+        padding: 1.5rem;
+    }
+}

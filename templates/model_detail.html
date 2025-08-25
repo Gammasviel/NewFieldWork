@@ -6,160 +6,463 @@
     <title>{{ llm.name }} - 模型详情</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tech-theme.css') }}">
     <style>
-        body { background-color: #f8f9fa; }
-        .header { background-color: #0d6efd; color: white; padding: 2rem 0; margin-bottom: 2rem; }
-        .chart-container { width: 100%; height: 450px; }
-        .model-icon { max-width: 80px; max-height: 80px; margin-right: 1.5rem; }
+        .model-header {
+            background: linear-gradient(135deg, var(--tech-bg-darker) 0%, var(--tech-bg-dark) 100%);
+            padding: 3rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .model-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+        
+        .model-icon-container {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+        
+        .model-icon {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid var(--tech-primary);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+        
+        .default-icon {
+            width: 100%;
+            height: 100%;
+            background: var(--tech-gradient-2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+        
+        .rank-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.25rem;
+            color: #000;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .info-card {
+            background: var(--tech-bg-card);
+            border: 1px solid var(--tech-border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .info-card:hover {
+            border-color: var(--tech-primary);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.2);
+        }
+        
+        .info-label {
+            color: var(--tech-text-muted);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-value {
+            color: var(--tech-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .description-section {
+            background: var(--tech-bg-card);
+            border: 1px solid var(--tech-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            color: var(--tech-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 0.5rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            min-height: 450px;
+        }
+        
+        .back-btn {
+            background: transparent;
+            border: 2px solid var(--tech-primary);
+            color: var(--tech-primary);
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .back-btn:hover {
+            background: var(--tech-primary);
+            color: var(--tech-bg-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+        
+        .model-name {
+            font-size: 3rem;
+            font-weight: 800;
+            background: var(--tech-gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
 
-    <header class="header text-center">
-        <div class="container">
-            <h1 class="display-4">{{ llm.name }}</h1>
-            <p class="lead">模型详情分析</p>
-        </div>
-    </header>
-
-    <div class="container">
-        <div class="card shadow-sm mb-4">
-            <div class="card-body d-flex align-items-center">
+    <header class="model-header">
+        <div class="container text-center">
+            <div class="model-icon-container">
                 {% if llm.icon %}
-                    <img src="{{ url_for('static', filename='uploads/icons/' + llm.icon) }}" alt="{{ llm.name }} Icon" class="model-icon rounded-circle">
+                    <img src="{{ url_for('static', filename='uploads/icons/' + llm.icon) }}" alt="{{ llm.name }}" class="model-icon">
                 {% else %}
-                    <div class="model-icon bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white fs-1">
+                    <div class="default-icon">
                         <i class="bi bi-robot"></i>
                     </div>
                 {% endif %}
-                <div>
-                    <h4 class="card-title mb-1">{{ llm.name }}</h4>
-                    <span class="badge bg-primary">总排名: {{ model_rank }}</span>
-                </div>
+                <div class="rank-badge">#{{ model_rank }}</div>
             </div>
-            <div class="card-body border-top">
-                <h5>模型描述</h5>
-                <p>{{ llm.desc or '暂无描述。' }}</p>
-                <hr>
-                <h5>综合评价</h5>
-                <p>{{ llm.comment or '暂无评价。' }}</p>
+            <h1 class="model-name">{{ llm.name }}</h1>
+            <p class="lead text-muted">深度性能分析报告</p>
+        </div>
+    </header>
+
+    <div class="container my-5">
+        <!-- 基础信息网格 -->
+        <div class="info-grid mb-4">
+            <div class="info-card">
+                <div class="info-label">综合排名</div>
+                <div class="info-value">#{{ model_rank }}</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">综合得分</div>
+                <div class="info-value">{{ "%.2f"|format(radar_data.values[1] if radar_data.values|length > 1 else 0) }}</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">响应率</div>
+                <div class="info-value">{{ "%.1f"|format(radar_data.values[0]) }}%</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">评测维度</div>
+                <div class="info-value">{{ radar_data.indicators|length - 1 }}</div>
             </div>
         </div>
 
-        <div class="row g-4">
+        <!-- 模型描述 -->
+        {% if llm.desc %}
+        <div class="description-section">
+            <h5 class="section-title">
+                <i class="bi bi-info-circle-fill"></i>
+                模型简介
+            </h5>
+            <p class="text-light">{{ llm.desc }}</p>
+        </div>
+        {% endif %}
+
+        <!-- 综合评价 -->
+        {% if llm.comment %}
+        <div class="description-section">
+            <h5 class="section-title">
+                <i class="bi bi-chat-quote-fill"></i>
+                专家评价
+            </h5>
+            <p class="text-light">{{ llm.comment }}</p>
+        </div>
+        {% endif %}
+
+        <!-- 图表区域 -->
+        <div class="row g-4 mb-5">
+            <!-- 雷达图 -->
             <div class="col-lg-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">综合能力雷达图</h5>
-                        <div id="radar-chart" class="chart-container"></div>
+                <div class="tech-chart-container">
+                    <h5 class="tech-card-title">
+                        <i class="bi bi-diagram-3-fill me-2"></i>
+                        综合能力雷达图
+                    </h5>
+                    <div class="chart-container">
+                        <div id="radar-chart"></div>
                     </div>
                 </div>
             </div>
+
+            <!-- 饼图 -->
             <div class="col-lg-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">一级维度得分比例</h5>
-                        <div id="proportion-pie-chart" class="chart-container"></div>
+                <div class="tech-chart-container">
+                    <h5 class="tech-card-title">
+                        <i class="bi bi-pie-chart-fill me-2"></i>
+                        维度得分分布
+                    </h5>
+                    <div class="chart-container">
+                        <div id="pie-chart"></div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="text-center mt-4">
-             <!-- 解决方案：将 btn-secondary 替换为 btn-primary -->
-             <a href="{{ url_for('public_leaderboard.display_public_leaderboard') }}" class="btn btn-primary">
-                <i class="bi bi-arrow-left-circle"></i> 返回综合榜单
+
+        <!-- 返回按钮 -->
+        <div class="text-center">
+            <a href="{{ url_for('public_leaderboard.display_public_leaderboard') }}" class="back-btn">
+                <i class="bi bi-arrow-left-circle me-2"></i>
+                返回综合榜单
             </a>
         </div>
     </div>
 
-    <footer class="text-center py-4 mt-5">
-        <p class="mb-0 text-muted">大模型风险评估系统</p>
+    <footer class="text-center py-4 mt-5 border-top border-secondary">
+        <div class="container">
+            <p class="mb-0 text-muted">AI模型综合能力评测中心 © 2024</p>
+        </div>
     </footer>
     
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script>
+    // 深色主题配置
+    const darkTheme = {
+        color: ['#00d4ff', '#667eea', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'],
+        backgroundColor: 'transparent',
+        textStyle: {
+            color: '#e2e8f0'
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
-        // --- Radar Chart (unchanged) ---
-        const radarChartDom = document.getElementById('radar-chart');
-        const radarChart = echarts.init(radarChartDom);
         const radarData = {{ radar_data|tojson }};
+        const pieData = {{ bar_data|tojson }};
+
+        // 1. 雷达图
+        const radarChart = echarts.init(document.getElementById('radar-chart'), darkTheme);
         const radarOption = {
-            tooltip: { 
+            tooltip: {
                 trigger: 'item',
+                backgroundColor: 'rgba(15, 22, 41, 0.95)',
+                borderColor: '#1e2a4a',
+                textStyle: { color: '#e2e8f0' },
                 formatter: function(params) {
-                    let tooltipStr = `${params.name}<br/>`;
+                    let tooltipStr = '<div style="font-weight: bold; margin-bottom: 5px;">' + params.name + '</div>';
                     const indicators = radarData.indicators;
                     const values = params.data.value;
                     for (let i = 0; i < indicators.length; i++) {
-                        tooltipStr += `${indicators[i].name}: ${values[i].toFixed(2)}<br/>`;
+                        const value = values[i].toFixed(2);
+                        const unit = indicators[i].name === '响应率' ? '%' : '';
+                        tooltipStr += `<div style="display: flex; justify-content: space-between; margin: 2px 0;">
+                            <span>${indicators[i].name}:</span>
+                            <span style="color: #00d4ff; margin-left: 20px;">${value}${unit}</span>
+                        </div>`;
                     }
                     return tooltipStr;
                 }
             },
             radar: {
-                indicator: radarData.indicators
+                indicator: radarData.indicators,
+                shape: 'polygon',
+                splitNumber: 5,
+                name: {
+                    textStyle: {
+                        color: '#e2e8f0',
+                        fontSize: 14
+                    }
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: '#1e2a4a'
+                    }
+                },
+                splitArea: {
+                    show: true,
+                    areaStyle: {
+                        color: ['rgba(30, 42, 74, 0.1)', 'rgba(30, 42, 74, 0.2)']
+                    }
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: '#1e2a4a'
+                    }
+                }
             },
             series: [{
                 name: '{{ llm.name }}',
                 type: 'radar',
                 data: [{
                     value: radarData.values,
-                    name: '{{ llm.name }}'
+                    name: '{{ llm.name }}',
+                    symbol: 'circle',
+                    symbolSize: 8,
+                    lineStyle: {
+                        color: '#00d4ff',
+                        width: 3,
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 212, 255, 0.5)'
+                    },
+                    itemStyle: {
+                        color: '#00d4ff',
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    areaStyle: {
+                        color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
+                            { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
+                            { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                        ])
+                    },
+                    emphasis: {
+                        lineStyle: {
+                            width: 4
+                        },
+                        itemStyle: {
+                            symbolSize: 12,
+                            shadowBlur: 20,
+                            shadowColor: 'rgba(0, 212, 255, 0.8)'
+                        }
+                    }
                 }]
             }]
         };
         radarChart.setOption(radarOption);
 
-        // --- Pie Chart (tooltip updated) ---
-        const pieChartDom = document.getElementById('proportion-pie-chart');
-        const pieChart = echarts.init(pieChartDom);
-        const pieData = {{ bar_data|tojson }};
-        
+        // 2. 饼图
+        const pieChart = echarts.init(document.getElementById('pie-chart'), darkTheme);
         const pieOption = {
             tooltip: {
                 trigger: 'item',
-                // --- 解决方案: 将格式化字符串替换为函数 ---
+                backgroundColor: 'rgba(15, 22, 41, 0.95)',
+                borderColor: '#1e2a4a',
+                textStyle: { color: '#e2e8f0' },
                 formatter: function(params) {
-                    // params.value 是原始分数值
-                    // params.percent 是 ECharts 计算好的百分比
-                    // toFixed(2) 强制显示两位小数
-                    const score = params.value.toFixed(2); 
-                    return `${params.seriesName}<br/>${params.name}: ${score} (${params.percent}%)`;
+                    const score = params.value.toFixed(2);
+                    return `<div style="font-weight: bold;">${params.seriesName}</div>
+                            <div>${params.name}: ${score} (${params.percent}%)</div>`;
                 }
             },
             legend: {
                 orient: 'vertical',
-                left: 'left'
+                left: 'left',
+                top: 'center',
+                textStyle: {
+                    color: '#e2e8f0'
+                }
             },
             series: [{
-                name: '得分来源',
+                name: '维度得分',
                 type: 'pie',
-                radius: '60%',
-                center: ['50%', '55%'],
-                data: pieData,
-                emphasis: {
-                    itemStyle: {
-                        shadowBlur: 10,
-                        shadowOffsetX: 0,
-                        shadowColor: 'rgba(0, 0, 0, 0.5)'
-                    }
+                radius: ['40%', '70%'],
+                center: ['60%', '50%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 10,
+                    borderColor: 'var(--tech-bg-dark)',
+                    borderWidth: 2
                 },
                 label: {
                     show: true,
-                    formatter: '{b}\n({d}%)'
-                }
+                    position: 'outside',
+                    formatter: '{b}\n{d}%',
+                    color: '#e2e8f0'
+                },
+                labelLine: {
+                    show: true,
+                    lineStyle: {
+                        color: '#667eea'
+                    }
+                },
+                data: pieData.map((item, index) => ({
+                    value: item.value,
+                    name: item.name,
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: `rgba(${102 + index * 30}, ${126 + index * 20}, 234, 1)` },
+                            { offset: 1, color: `rgba(${102 + index * 30}, ${126 + index * 20}, 234, 0.6)` }
+                        ])
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 20,
+                            shadowColor: `rgba(${102 + index * 30}, ${126 + index * 20}, 234, 0.5)`
+                        }
+                    }
+                }))
             }]
         };
         pieChart.setOption(pieOption);
 
-        // --- Resize listener (unchanged) ---
+        // 响应式处理
         window.addEventListener('resize', function() {
             radarChart.resize();
             pieChart.resize();
         });
+
+        // 添加动画效果
+        setTimeout(() => {
+            radarChart.dispatchAction({
+                type: 'highlight',
+                seriesIndex: 0,
+                dataIndex: 0
+            });
+        }, 1000);
     });
     </script>
-
 </body>
 </html>

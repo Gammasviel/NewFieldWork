@@ -8,7 +8,7 @@
     --tech-bg-card: #1a1f3a;
     --tech-bg-hover: #242943;
     
-    /* 霓虹色彩系统 */
+    /* 霓虹色彩系统 - 调整为更协调的配色 */
     --tech-accent-cyan: #00d9ff;
     --tech-accent-purple: #7c3aed;
     --tech-accent-pink: #ec4899;
@@ -24,10 +24,11 @@
     --tech-border: rgba(148, 163, 184, 0.1);
     --tech-border-light: rgba(148, 163, 184, 0.2);
     
-    /* 渐变色 */
-    --tech-gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --tech-gradient-2: linear-gradient(135deg, #00d9ff 0%, #7c3aed 100%);
-    --tech-gradient-3: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    /* 优化后的渐变色 - 使用更协调的颜色组合 */
+    --tech-gradient-1: linear-gradient(135deg, #00d9ff 0%, #0891b2 100%);
+    --tech-gradient-2: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    --tech-gradient-3: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+    --tech-gradient-4: linear-gradient(135deg, #10b981 0%, #059669 100%);
     
     /* 动画时长 */
     --tech-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -86,16 +87,16 @@ body::after {
     z-index: -1;
 }
 
-/* 霓虹发光效果 */
+/* 霓虹发光效果 - 降低亮度 */
 .neon-glow {
-    filter: drop-shadow(0 0 20px currentColor);
+    filter: drop-shadow(0 0 10px currentColor);
 }
 
 .neon-text {
     text-shadow: 
-        0 0 10px currentColor,
-        0 0 20px currentColor,
-        0 0 40px currentColor;
+        0 0 5px rgba(0, 217, 255, 0.5),
+        0 0 10px rgba(0, 217, 255, 0.3),
+        0 0 20px rgba(0, 217, 255, 0.2);
 }
 
 /* 头部样式 */
@@ -128,7 +129,7 @@ body::after {
     font-size: 3rem;
     font-weight: 800;
     margin: 0;
-    background: var(--tech-gradient-2);
+    background: var(--tech-gradient-1);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -166,7 +167,7 @@ body::after {
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--tech-gradient-2);
+    background: var(--tech-gradient-1);
     transform: translateX(-100%);
     transition: transform 0.3s ease;
 }
@@ -338,7 +339,7 @@ body::after {
 
 .tech-progress-bar {
     height: 100%;
-    background: var(--tech-gradient-2);
+    background: var(--tech-gradient-1);
     border-radius: 0.25rem;
     position: relative;
     overflow: hidden;
@@ -430,23 +431,7 @@ body::after {
     to { transform: rotate(360deg); }
 }
 
-/* 特殊效果：扫描线 */
+/* 移除扫描线效果 */
 .scan-line {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        var(--tech-accent-cyan),
-        transparent
-    );
-    animation: scan 3s linear infinite;
-}
-
-@keyframes scan {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(100vh); }
+    display: none;
 }

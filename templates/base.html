@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>大模型风险评估系统</title>
+    
+    <!-- 1. 添加 Google Fonts 字体链接 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 2. Bootstrap 核心 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+    <!-- 3. 加载我们的自定义样式（必须在 Bootstrap 之后） -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -57,9 +67,9 @@
         {% block content %}{% endblock %}
     </div>
 
-    <footer class="bg-light text-center py-3 mt-5">
+    <footer class="text-center py-4 mt-5"> <!-- 调整页脚样式 -->
         <div class="container">
-            <p class="mb-0">大模型风险评估系统</p>
+            <p class="mb-0 text-muted">大模型风险评估系统</p>
         </div>
     </footer>
 

@@ -200,11 +200,13 @@
             </div>
             <div class="info-card">
                 <div class="info-label">综合得分</div>
-                <div class="info-value">{{ "%.2f"|format(radar_data.values[1] if radar_data.values|length > 1 else 0) }}</div>
+                {# 修复：使用索引访问而不是使用 values 属性 #}
+                {% set values_list = radar_data['values'] %}
+                <div class="info-value">{{ "%.2f"|format(values_list[1] if values_list|length > 1 else 0) }}</div>
             </div>
             <div class="info-card">
                 <div class="info-label">响应率</div>
-                <div class="info-value">{{ "%.1f"|format(radar_data.values[0]) }}%</div>
+                <div class="info-value">{{ "%.1f"|format(values_list[0] if values_list else 0) }}%</div>
             </div>
             <div class="info-card">
                 <div class="info-label">评测维度</div>

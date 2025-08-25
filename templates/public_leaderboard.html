@@ -297,7 +297,7 @@
         <div class="tech-card">
             <h3 class="tech-card-title">
                 <i class="bi bi-radar-chart neon-glow" style="color: var(--tech-accent-pink);"></i>
-                维度性能对比分析
+                各模型维度平均分对比 <!-- 修改这里 -->
             </h3>
             <div id="dimension-bar-chart" class="tech-chart-container"></div>
         </div>
@@ -791,14 +791,17 @@
         if (dimensionChartDom && dimensions && dimensions.length > 0) {
             const dimensionChart = echarts.init(dimensionChartDom, null, {renderer: 'canvas'});
             
-            // 准备数据
-            const seriesData = leaderboardData.slice(0, 5).map(model => ({
+            // --- 开始修改 ---
+            // 准备数据，直接使用平均分
+            const topModels = leaderboardData.slice(0, 5); // 只显示排名前5的模型
+            const seriesData = topModels.map(model => ({
                 name: model.name,
                 type: 'bar',
+                barGap: '20%',
                 data: dimensions.map(dim => {
-                    const rank = model.ranks[dim.id];
-                    // 将排名转换为得分（排名越小得分越高）
-                    return rank ? (6 - Math.min(rank, 5)) : 0;
+                    const dimScoreData = model.dim_scores[dim.id];
+                    // 直接使用平均分，如果数据不存在则为0
+                    return dimScoreData ? parseFloat(dimScoreData.avg.toFixed(2)) : 0;
                 }),
                 itemStyle: {
                     borderRadius: [4, 4, 0, 0]
@@ -814,13 +817,13 @@
                     axisPointer: {
                         type: 'shadow'
                     },
+                    // 更新提示框格式，显示分数
                     formatter: params => {
                         let tooltip = `${params[0].axisValue}<br/>`;
+                        // 按分数值对提示进行排序
+                        params.sort((a, b) => b.value - a.value); 
                         params.forEach(param => {
-                            const model = leaderboardData.find(m => m.name === param.seriesName);
-                            const dimId = dimensions[param.dataIndex].id;
-                            const rank = model.ranks[dimId];
-                            tooltip += `${param.seriesName}: 第${rank}名<br/>`;
+                            tooltip += `${param.marker} ${param.seriesName}: <strong>${param.value.toFixed(2)}</strong><br/>`;
                         });
                         return tooltip;
                     },
@@ -831,7 +834,7 @@
                     }
                 },
                 legend: {
-                    data: leaderboardData.slice(0, 5).map(item => item.name),
+                    data: topModels.map(item => item.name),
                     top: 10,
                     textStyle: {
                         color: '#94a3b8'
@@ -863,14 +866,13 @@
                         }
                     }
                 },
+                // 更新Y轴，显示分数而不是名次
                 yAxis: {
                     type: 'value',
-                    name: '表现得分',
+                    name: '平均得分',
+                    min: 0,
+                    max: 5, // 假设最高分为5分
                     axisLabel: {
-                        formatter: value => {
-                            const rank = 6 - value;
-                            return rank > 0 && rank <= 5 ? `第${rank}名` : '';
-                        },
                         color: '#94a3b8'
                     },
                     axisLine: {
@@ -886,6 +888,7 @@
                 },
                 series: seriesData
             };
+            // --- 结束修改 ---
             
             dimensionChart.setOption(dimensionOption);
             

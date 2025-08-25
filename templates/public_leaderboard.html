@@ -1,173 +1,356 @@
-<!-- .\templates\public_leaderboard.html -->
+<!-- templates/public_leaderboard.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大模型综合能力榜单</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>AI模型综合能力评估系统</title>
+    
+    <!-- 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- 图标 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <!-- 科技风格CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tech-style.css') }}">
+    
     <style>
-        body {
-            background-color: #f8f9fa;
+        /* 页面特定样式 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
         }
-        .header {
-            background-color: #0d6efd;
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
+        
+        .stat-card {
+            background: var(--tech-bg-card);
+            border: 1px solid var(--tech-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: var(--tech-transition);
+            position: relative;
+            overflow: hidden;
         }
-        .chart-container {
-            width: 100%;
-            height: 450px;
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--tech-gradient-2);
+            border-radius: 1rem;
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 0.3s ease;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+        
+        .stat-card:hover {
+            background: var(--tech-bg-hover);
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--tech-gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            color: var(--tech-text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.5rem;
+        }
+        
+        .model-link {
+            color: var(--tech-accent-cyan);
+            text-decoration: none;
+            transition: var(--tech-transition);
+            position: relative;
+        }
+        
+        .model-link:hover {
+            color: var(--tech-accent-purple);
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        .score-bar {
+            width: 100px;
+            height: 8px;
+            background: var(--tech-bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .score-fill {
+            height: 100%;
+            background: var(--tech-gradient-2);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+            position: relative;
+        }
+        
+        .update-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+        }
+        
+        .quadrant-legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--tech-bg-secondary);
+            border-radius: 0.5rem;
+            border: 1px solid var(--tech-border);
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+        }
+        
+        .legend-text {
+            font-size: 0.875rem;
+        }
+        
+        .legend-title {
+            color: var(--tech-text-primary);
+            font-weight: 600;
+        }
+        
+        .legend-desc {
+            color: var(--tech-text-muted);
+            font-size: 0.75rem;
         }
     </style>
 </head>
 <body>
-
-    <header class="header text-center">
-        <div class="container">
-            <h1 class="display-4">大模型综合能力榜单</h1>
-            <p class="lead">客观评估 AI 模型在不同维度下的表现</p>
+    <div class="scan-line"></div>
+    
+    <header class="tech-header">
+        <div class="tech-container">
+            <h1 class="neon-text">AI模型综合能力评估系统</h1>
+            <p class="lead">下一代人工智能模型性能基准测试平台</p>
         </div>
     </header>
 
-    <div class="container">
-        <!-- Flash 消息容器 -->
+    <div class="tech-container">
+        <!-- Flash 消息 -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <div class="tech-card" style="background: {% if category == 'danger' %}rgba(239, 68, 68, 0.1){% else %}rgba(16, 185, 129, 0.1){% endif %}; border-color: {% if category == 'danger' %}rgba(239, 68, 68, 0.3){% else %}rgba(16, 185, 129, 0.3){% endif %}; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>{{ message }}</span>
+                            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: var(--tech-text-secondary); cursor: pointer;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>评估结果</h2>
-            <form method="POST" action="{{ url_for('public_leaderboard.update_all_models') }}" onsubmit="return confirm('确定要重新评估所有模型的所有问题吗？这将是一个耗时的操作。');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-arrow-repeat"></i> 更新全部模型
-                </button>
-            </form>
+        <!-- 统计信息 -->
+        {% if leaderboard %}
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ leaderboard|length }}</div>
+                <div class="stat-label">评估模型</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ l1_dimensions|length }}</div>
+                <div class="stat-label">评估维度</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ "%.2f"|format(leaderboard[0].avg_score) if leaderboard else '0' }}</div>
+                <div class="stat-label">最高得分</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ "%.1f"|format(leaderboard|map(attribute='response_rate')|max) if leaderboard else '0' }}%</div>
+                <div class="stat-label">最高响应率</div>
+            </div>
         </div>
-        
+        {% endif %}
+
         {% if leaderboard %}
         <!-- 图表区域 -->
-        <div class="row g-4 mb-5">
-            <!-- 1. 总体得分与响应率柱状图 -->
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">模型总体得分与响应率</h5>
-                        <div id="overall-bar-chart" class="chart-container"></div>
-                    </div>
-                </div>
-            </div>
+        <div class="tech-card">
+            <h3 class="tech-card-title">
+                <i class="bi bi-bar-chart-line neon-glow" style="color: var(--tech-accent-cyan);"></i>
+                模型综合性能分析
+            </h3>
+            <div id="overall-bar-chart" class="tech-chart-container"></div>
+        </div>
 
-            <!-- 2. 安全管制策略四象限图 -->
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">安全管制策略分析</h5>
-                         <div class="row">
-                            <div class="col-lg-8">
-                                <div id="quadrant-chart" class="chart-container"></div>
+        <div class="tech-card">
+            <h3 class="tech-card-title">
+                <i class="bi bi-grid-3x3-gap neon-glow" style="color: var(--tech-accent-purple);"></i>
+                安全管制策略象限分析
+            </h3>
+            <div class="row">
+                <div class="col-lg-8">
+                    <div id="quadrant-chart" class="tech-chart-container"></div>
+                </div>
+                <div class="col-lg-4">
+                    <div style="padding: 1rem;">
+                        <h5 style="color: var(--tech-text-primary); margin-bottom: 1rem;">象限说明</h5>
+                        <div class="quadrant-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-green);"></div>
+                                <div>
+                                    <div class="legend-title">精细化管制</div>
+                                    <div class="legend-desc">严格审核，高开放度</div>
+                                </div>
                             </div>
-                            <div class="col-lg-4 d-flex align-items-center">
-                                <div class="alert alert-light border w-100">
-                                    <p><strong>坐标轴说明:</strong></p>
-                                    <ul>
-                                        <li><strong>Y轴 (总得分):</strong> 代表内容审核严格程度。分数越高，审核越严格。</li>
-                                        <li><strong>X轴 (响应率):</strong> 代表回答开放程度。比例越高，回答越开放。</li>
-                                    </ul>
-                                    <hr>
-                                    <p><strong>象限说明:</strong></p>
-                                    <ul class="list-unstyled">
-                                        <li><strong class="text-success">右上: 精细化管制</strong><br><small>内容审核严格，回答开放程度高</small></li>
-                                        <li class="mt-2"><strong class="text-primary">左上: 稳健型管制</strong><br><small>内容审核严格，回答开放程度低</small></li>
-                                        <li class="mt-2"><strong class="text-warning">右下: 粗放型管制</strong><br><small>内容审核宽松，回答开放程度高</small></li>
-                                        <li class="mt-2"><strong class="text-danger">左下: 松懈型管制</strong><br><small>内容审核宽松，回答开放程度低</small></li>
-                                    </ul>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-cyan);"></div>
+                                <div>
+                                    <div class="legend-title">稳健型管制</div>
+                                    <div class="legend-desc">严格审核，低开放度</div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-yellow);"></div>
+                                <div>
+                                    <div class="legend-title">粗放型管制</div>
+                                    <div class="legend-desc">宽松审核，高开放度</div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-pink);"></div>
+                                <div>
+                                    <div class="legend-title">松懈型管制</div>
+                                    <div class="legend-desc">宽松审核，低开放度</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 3. 各维度平均分柱状图 -->
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">各一级维度平均得分</h5>
-                        <div id="dimension-bar-chart" class="chart-container"></div>
-                    </div>
-                </div>
-            </div>
+        <div class="tech-card">
+            <h3 class="tech-card-title">
+                <i class="bi bi-radar-chart neon-glow" style="color: var(--tech-accent-pink);"></i>
+                维度性能对比分析
+            </h3>
+            <div id="dimension-bar-chart" class="tech-chart-container"></div>
         </div>
         {% endif %}
 
-        <!-- 数据表格 -->
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">详细数据表</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered mb-0">
-                        <thead class="table-light text-center">
-                            <tr>
-                                <th rowspan="2" class="align-middle">总排名</th>
-                                <th rowspan="2" class="align-middle">模型名称</th>
-                                <th rowspan="2" class="align-middle">模型总得分</th>
-                                <th rowspan="2" class="align-middle">模型响应率</th>
-                                {% if l1_dimensions %}
-                                <th colspan="{{ l1_dimensions|length }}" class="text-center">各维度得分排名</th>
-                                {% endif %}
-                            </tr>
-                            {% if l1_dimensions %}
-                            <tr>
-                                {% for dim in l1_dimensions %}
-                                <th>{{ dim.name }}</th>
-                                {% endfor %}
-                            </tr>
-                            {% endif %}
-                        </thead>
-                        <tbody class="text-center">
-                            {% for item in leaderboard %}
-                            <tr>
-                                <td><strong>{{ loop.index }}</strong></td>
-                                <td><a href="{{ url_for('public_leaderboard.model_detail', model_name=item.name) }}">{{ item.name }}</a></td>
-                                <td>{{ "%.2f" | format(item.avg_score) }}</td>
-                                <td>{{ "%.2f" | format(item.response_rate) }}%</td>
-                                {% for dim in l1_dimensions %}
-                                <td>{{ item.ranks.get(dim.id, '-') }}</td>
-                                {% endfor %}
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="{{ 4 + (l1_dimensions|length) }}" class="text-center py-4">暂无数据或评估尚未完成。请尝试点击“更新全部模型”。</td>
-                            </tr>
+        <!-- 详细数据表 -->
+        <div class="tech-card">
+            <h3 class="tech-card-title">
+                <i class="bi bi-table neon-glow" style="color: var(--tech-accent-yellow);"></i>
+                模型评估详细数据
+            </h3>
+            <div style="overflow-x: auto;">
+                <table class="tech-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: center;">排名</th>
+                            <th>模型名称</th>
+                            <th>总得分</th>
+                            <th>响应率</th>
+                            {% for dim in l1_dimensions %}
+                            <th style="text-align: center;">{{ dim.name }}</th>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in leaderboard %}
+                        <tr>
+                            <td style="text-align: center;">
+                                <span class="rank-badge {% if loop.index <= 3 %}rank-{{ loop.index }}{% else %}rank-other{% endif %}">
+                                    {{ loop.index }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('public_leaderboard.model_detail', model_name=item.name) }}" class="model-link">
+                                    {{ item.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span style="font-weight: 600; color: var(--tech-accent-cyan);">{{ "%.2f" | format(item.avg_score) }}</span>
+                                <div class="score-bar">
+                                    <div class="score-fill" style="width: {{ (item.avg_score / 5 * 100) }}%"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight: 600; color: {% if item.response_rate > 95 %}var(--tech-accent-green){% elif item.response_rate > 90 %}var(--tech-accent-yellow){% else %}var(--tech-accent-pink){% endif %};">
+                                    {{ "%.2f" | format(item.response_rate) }}%
+                                </span>
+                            </td>
+                            {% for dim in l1_dimensions %}
+                            <td style="text-align: center;">
+                                {% if item.ranks.get(dim.id, '-') != '-' %}
+                                    <span class="data-label">
+                                        <span class="data-label-icon" style="background: {% if item.ranks[dim.id] == 1 %}var(--tech-accent-green){% elif item.ranks[dim.id] <= 3 %}var(--tech-accent-yellow){% else %}var(--tech-accent-cyan){% endif %};"></span>
+                                        {{ item.ranks[dim.id] }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--tech-text-muted);">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="{{ 4 + (l1_dimensions|length) }}" style="text-align: center; padding: 3rem;">
+                                <div class="tech-loader"></div>
+                                <p style="margin-top: 1rem; color: var(--tech-text-muted);">暂无评估数据</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <footer class="text-center py-4 mt-5">
-        <div class="container">
-            <p class="mb-0 text-muted">大模型风险评估系统</p>
-        </div>
-    </footer>
-    
-    <!-- ECharts CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 更新按钮 -->
+    <div class="update-button">
+        <form method="POST" action="{{ url_for('public_leaderboard.update_all_models') }}" onsubmit="return confirm('确定要重新评估所有模型吗？这将是一个耗时的操作。');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="tech-btn">
+                <i class="bi bi-arrow-repeat"></i> 更新全部模型
+            </button>
+        </form>
+    </div>
 
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const leaderboardData = {{ leaderboard|tojson }};
@@ -175,138 +358,449 @@
         const scoreThreshold = {{ score_threshold }};
         const rateThreshold = {{ rate_threshold }};
         
-        if (!leaderboardData || leaderboardData.length === 0) {
-            return; // 没有数据则不渲染图表
-        }
+        if (!leaderboardData || leaderboardData.length === 0) return;
 
-        // --- 通用函数 ---
-        function goToModelDetail(modelName) {
+        // ECharts 主题配置
+        const techTheme = {
+            color: ['#00d9ff', '#7c3aed', '#ec4899', '#10b981', '#f59e0b'],
+            backgroundColor: 'transparent',
+            textStyle: {
+                color: '#94a3b8'
+            },
+            title: {
+                textStyle: {
+                    color: '#ffffff'
+                }
+            },
+            legend: {
+                textStyle: {
+                    color: '#94a3b8'
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(26, 31, 58, 0.95)',
+                borderColor: 'rgba(148, 163, 184, 0.2)',
+                textStyle: {
+                    color: '#ffffff'
+                }
+            },
+            grid: {
+                borderColor: 'rgba(148, 163, 184, 0.1)'
+            },
+            categoryAxis: {
+                axisLine: {
+                    lineStyle: {
+                        color: 'rgba(148, 163, 184, 0.2)'
+                    }
+                },
+                axisTick: {
+                    lineStyle: {
+                        color: 'rgba(148, 163, 184, 0.2)'
+                    }
+                },
+                axisLabel: {
+                    color: '#94a3b8'
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: ['rgba(148, 163, 184, 0.1)']
+                    }
+                }
+            },
+            valueAxis: {
+                axisLine: {
+                    lineStyle: {
+                        color: 'rgba(148, 163, 184, 0.2)'
+                    }
+                },
+                axisTick: {
+                    lineStyle: {
+                        color: 'rgba(148, 163, 184, 0.2)'
+                    }
+                },
+                axisLabel: {
+                    color: '#94a3b8'
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: ['rgba(148, 163, 184, 0.1)']
+                    }
+                }
+            }
+        };
+
+        const goToModelDetail = (modelName) => {
             if (modelName) {
                 window.location.href = `/model/detail/${encodeURIComponent(modelName)}`;
             }
-        }
-        
-        // --- 修改点 2: 扩展点击处理器 ---
-        const chartClickHandler = (params) => {
-            let modelName;
-            // Handle clicks on series (bars, scatter points)
-            if (params.componentType === 'series') {
-                if (params.seriesType === 'scatter' && Array.isArray(params.value)) {
-                    modelName = params.value[2];
-                } else {
-                    modelName = params.name;
-                }
-            } 
-            // Handle clicks on the x-axis labels directly
-            else if (params.componentType === 'xAxis') {
-                modelName = params.value;
-            }
-            goToModelDetail(modelName);
         };
-        // --- 结束 ---
 
-        // --- 1. 总体得分与响应率柱状图 ---
+        // 1. 综合性能柱状图
         const overallChartDom = document.getElementById('overall-bar-chart');
         if (overallChartDom) {
-            const overallChart = echarts.init(overallChartDom);
+            const overallChart = echarts.init(overallChartDom, techTheme);
             const overallOption = {
-                tooltip: { trigger: 'axis' },
-                legend: { data: ['总体得分', '响应率'] },
-                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross'
+                    }
+                },
+                legend: {
+                    data: ['总得分', '响应率'],
+                    top: 10,
+                    textStyle: {
+                        color: '#94a3b8'
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%',
+                    top: '15%',
+                    containLabel: true
+                },
                 xAxis: {
                     type: 'category',
                     data: leaderboardData.map(item => item.name),
-                    axisLabel: { interval: 0, rotate: 30 },
-                    // --- 修改点 1: 启用坐标轴事件 ---
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 30
+                    },
                     triggerEvent: true
                 },
                 yAxis: [
-                    { type: 'value', name: '得分', min: 0, max: 5 },
-                    { type: 'value', name: '响应率', min: 0, max: 100, axisLabel: { formatter: '{value} %' } }
+                    {
+                        type: 'value',
+                        name: '得分',
+                        min: 0,
+                        max: 5,
+                        position: 'left',
+                        axisLabel: {
+                            formatter: '{value}'
+                        }
+                    },
+                    {
+                        type: 'value',
+                        name: '响应率',
+                        min: 0,
+                        max: 100,
+                        position: 'right',
+                        axisLabel: {
+                            formatter: '{value}%'
+                        }
+                    }
                 ],
                 series: [
                     {
-                        name: '总体得分',
+                        name: '总得分',
                         type: 'bar',
-                        data: leaderboardData.map(item => item.avg_score.toFixed(2)),
-                        emphasis: { focus: 'series', blurScope: 'coordinateSystem', itemStyle: { shadowBlur: 10 } }
+                        data: leaderboardData.map(item => ({
+                            value: item.avg_score.toFixed(2),
+                            itemStyle: {
+                                color: {
+                                    type: 'linear',
+                                    x: 0,
+                                    y: 0,
+                                    x2: 0,
+                                    y2: 1,
+                                    colorStops: [{
+                                        offset: 0, color: '#00d9ff'
+                                    }, {
+                                        offset: 1, color: '#7c3aed'
+                                    }]
+                                }
+                            }
+                        })),
+                        emphasis: {
+                            focus: 'series'
+                        }
                     },
                     {
                         name: '响应率',
-                        type: 'bar',
+                        type: 'line',
                         yAxisIndex: 1,
                         data: leaderboardData.map(item => item.response_rate.toFixed(2)),
-                        emphasis: { focus: 'series', blurScope: 'coordinateSystem', itemStyle: { shadowBlur: 10 } }
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        lineStyle: {
+                            width: 3,
+                            color: '#ec4899'
+                        },
+                        itemStyle: {
+                            color: '#ec4899',
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        },
+                        emphasis: {
+                            focus: 'series'
+                        }
                     }
                 ]
             };
             overallChart.setOption(overallOption);
-            overallChart.on('click', chartClickHandler);
+            overallChart.on('click', params => {
+                if (params.componentType === 'xAxis') {
+                    goToModelDetail(params.value);
+                } else if (params.componentType === 'series') {
+                    goToModelDetail(params.name);
+                }
+            });
+            
+            // 响应式
+            window.addEventListener('resize', () => overallChart.resize());
         }
 
-        // --- 2. 安全管制策略四象限图 ---
+        // 2. 四象限图
         const quadrantChartDom = document.getElementById('quadrant-chart');
         if (quadrantChartDom) {
-            const quadrantChart = echarts.init(quadrantChartDom);
-            const quadrantOption = {
-                grid: { left: '10%', right: '10%', bottom: '10%', top: '10%' },
-                tooltip: {
-                    formatter: (params) => `${params.value[2]}<br/>响应率: ${params.value[0].toFixed(2)}%<br/>总得分: ${params.value[1].toFixed(2)}`
+            const quadrantChart = echarts.init(quadrantChartDom, techTheme);
+            
+            // 准备四象限背景数据
+            const quadrantAreas = [
+                {
+                    name: '精细化管制',
+                    itemStyle: {
+                        color: 'rgba(16, 185, 129, 0.1)'
+                    },
+                    data: [[
+                        [rateThreshold, scoreThreshold],
+                        [100, scoreThreshold],
+                        [100, 4],
+                        [rateThreshold, 4]
+                    ]]
                 },
-                xAxis: { name: '响应率 (回答开放程度)', min: 85, max: 100, axisLabel: { formatter: '{value}%' } },
-                yAxis: { name: '总得分 (内容审核严格程度)', min: 2, max: 4 },
-                series: [{
-                    name: '模型',
-                    type: 'scatter',
-                    symbolSize: 15,
-                    data: leaderboardData.map(item => [item.response_rate, item.avg_score, item.name]),
-                    emphasis: { itemStyle: { borderWidth: 2, borderColor: '#333' } },
-                    label: { show: true, position: 'right', formatter: '{@[2]}' },
-                    markLine: {
-                        silent: true,
-                        symbol: 'none',
-                        lineStyle: { type: 'dashed' },
-                        data: [
-                            { xAxis: rateThreshold, label: { formatter: `${rateThreshold}%` } },
-                            { yAxis: scoreThreshold, label: { formatter: `${scoreThreshold}分` } }
-                        ]
+                {
+                    name: '稳健型管制',
+                    itemStyle: {
+                        color: 'rgba(0, 217, 255, 0.1)'
+                    },
+                    data: [[
+                        [85, scoreThreshold],
+                        [rateThreshold, scoreThreshold],
+                        [rateThreshold, 4],
+                        [85, 4]
+                    ]]
+                },
+                {
+                    name: '粗放型管制',
+                    itemStyle: {
+                        color: 'rgba(245, 158, 11, 0.1)'
+                    },
+                    data: [[
+                        [rateThreshold, 2],
+                        [100, 2],
+                        [100, scoreThreshold],
+                        [rateThreshold, scoreThreshold]
+                    ]]
+                },
+                {
+                    name: '松懈型管制',
+                    itemStyle: {
+                        color: 'rgba(236, 72, 153, 0.1)'
+                    },
+                    data: [[
+                        [85, 2],
+                        [rateThreshold, 2],
+                        [rateThreshold, scoreThreshold],
+                        [85, scoreThreshold]
+                    ]]
+                }
+            ];
+            
+            const quadrantOption = {
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '10%',
+                    top: '10%'
+                },
+                tooltip: {
+                    formatter: params => {
+                        if (params.componentType === 'series' && params.seriesType === 'scatter') {
+                            return `${params.value[2]}<br/>响应率: ${params.value[0].toFixed(2)}%<br/>总得分: ${params.value[1].toFixed(2)}`;
+                        }
+                        return '';
                     }
-                }]
+                },
+                xAxis: {
+                    name: '响应率 (%)',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    min: 85,
+                    max: 100,
+                    splitLine: {
+                        show: false
+                    }
+                },
+                yAxis: {
+                    name: '总得分',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    min: 2,
+                    max: 4,
+                    splitLine: {
+                        show: false
+                    }
+                },
+                series: [
+                    // 四象限背景
+                    ...quadrantAreas.map(area => ({
+                        name: area.name,
+                        type: 'polygon',
+                        shape: {
+                            points: area.data[0]
+                        },
+                        silent: true,
+                        itemStyle: area.itemStyle,
+                        data: area.data
+                    })),
+                    // 分割线
+                    {
+                        type: 'line',
+                        markLine: {
+                            silent: true,
+                            symbol: 'none',
+                            lineStyle: {
+                                type: 'dashed',
+                                color: 'rgba(148, 163, 184, 0.3)',
+                                width: 2
+                            },
+                            data: [
+                                { xAxis: rateThreshold },
+                                { yAxis: scoreThreshold }
+                            ],
+                            label: {
+                                show: false
+                            }
+                        }
+                    },
+                    // 散点数据
+                    {
+                        name: '模型分布',
+                        type: 'scatter',
+                        symbolSize: 20,
+                        data: leaderboardData.map(item => [
+                            item.response_rate,
+                            item.avg_score,
+                            item.name
+                        ]),
+                        itemStyle: {
+                            color: params => {
+                                const [x, y] = params.value;
+                                if (x >= rateThreshold && y >= scoreThreshold) return '#10b981';
+                                if (x < rateThreshold && y >= scoreThreshold) return '#00d9ff';
+                                if (x >= rateThreshold && y < scoreThreshold) return '#f59e0b';
+                                return '#ec4899';
+                            },
+                            borderColor: '#fff',
+                            borderWidth: 2,
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.3)'
+                        },
+                        emphasis: {
+                            scale: 1.5,
+                            itemStyle: {
+                                shadowBlur: 20
+                            }
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            formatter: '{@[2]}',
+                            color: '#ffffff',
+                            fontSize: 12
+                        }
+                    }
+                ]
             };
+            
             quadrantChart.setOption(quadrantOption);
-            quadrantChart.on('click', chartClickHandler);
+            quadrantChart.on('click', params => {
+                if (params.componentType === 'series' && params.seriesType === 'scatter') {
+                    goToModelDetail(params.value[2]);
+                }
+            });
+            
+            window.addEventListener('resize', () => quadrantChart.resize());
         }
-        
-        // --- 3. 各维度平均分柱状图 ---
+
+        // 3. 维度对比图
         const dimensionChartDom = document.getElementById('dimension-bar-chart');
         if (dimensionChartDom && dimensions.length > 0) {
-            const dimensionChart = echarts.init(dimensionChartDom);
+            const dimensionChart = echarts.init(dimensionChartDom, techTheme);
             const dimensionOption = {
-                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-                legend: { data: dimensions.map(d => d.name) },
-                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: dimensions.map(d => d.name),
+                    top: 10
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%',
+                    top: '15%',
+                    containLabel: true
+                },
                 xAxis: {
                     type: 'category',
                     data: leaderboardData.map(item => item.name),
-                    axisLabel: { interval: 0, rotate: 30 },
-                    // --- 修改点 1: 启用坐标轴事件 ---
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 30
+                    },
                     triggerEvent: true
                 },
-                yAxis: { type: 'value', name: '维度平均分', min: 0, max: 5 },
-                series: dimensions.map(dim => {
-                    return {
-                        name: dim.name,
-                        type: 'bar',
-                        emphasis: { focus: 'series', itemStyle: { shadowBlur: 10 } },
-                        data: leaderboardData.map(model => model.dim_scores[dim.id].avg.toFixed(2))
-                    };
-                })
+                yAxis: {
+                    type: 'value',
+                    name: '维度得分',
+                    min: 0,
+                    max: 5
+                },
+                series: dimensions.map((dim, index) => ({
+                    name: dim.name,
+                    type: 'bar',
+                    stack: 'total',
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: leaderboardData.map(model => ({
+                        value: model.dim_scores[dim.id].avg.toFixed(2),
+                        itemStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 0,
+                                y2: 1,
+                                colorStops: [{
+                                    offset: 0,
+                                    color: techTheme.color[index % techTheme.color.length]
+                                }, {
+                                    offset: 1,
+                                    color: techTheme.color[(index + 1) % techTheme.color.length]
+                                }]
+                            }
+                        }
+                    }))
+                }))
             };
             dimensionChart.setOption(dimensionOption);
-            dimensionChart.on('click', chartClickHandler);
+            dimensionChart.on('click', params => {
+                if (params.componentType === 'xAxis') {
+                    goToModelDetail(params.value);
+                }
+            });
+            
+            window.addEventListener('resize', () => dimensionChart.resize());
         }
     });
     </script>
-
 </body>
 </html>

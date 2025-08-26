@@ -612,10 +612,18 @@
             };
             overallChart.setOption(overallOption);
             overallChart.on('click', params => {
+                let modelName = null;
+                // 检查是对坐标轴、柱状图还是折线图的点击
                 if (params.componentType === 'xAxis') {
-                    goToModelDetail(params.value);
-                } else if (params.componentType === 'series' && params.seriesType === 'bar') {
-                    goToModelDetail(leaderboardData[params.dataIndex].name);
+                    modelName = params.value;
+                } else if (params.componentType === 'series' && (params.seriesType === 'bar' || params.seriesType === 'line')) {
+                    // 柱状图和折线图使用相同的数据索引
+                    modelName = leaderboardData[params.dataIndex].name;
+                }
+                
+                // 如果成功获取模型名称，则跳转
+                if (modelName) {
+                    goToModelDetail(modelName);
                 }
             });
             
@@ -792,53 +800,39 @@
             const dimensionChart = echarts.init(dimensionChartDom, null, {renderer: 'canvas'});
             
             // --- 开始修改 ---
-            // 准备数据，直接使用平均分
-            const topModels = leaderboardData.slice(0, 5); // 只显示排名前5的模型
-            const seriesData = topModels.map(model => ({
-                name: model.name,
-                type: 'bar',
-                barGap: '20%',
-                data: dimensions.map(dim => {
-                    const dimScoreData = model.dim_scores[dim.id];
-                    // 直接使用平均分，如果数据不存在则为0
-                    return dimScoreData ? parseFloat(dimScoreData.avg.toFixed(2)) : 0;
-                }),
-                itemStyle: {
-                    borderRadius: [4, 4, 0, 0]
-                },
-                emphasis: {
-                    focus: 'series'
-                }
-            }));
-            
+            // 重新组织数据结构：X轴为模型，Series为维度
+            const allModels = leaderboardData; // 显示所有模型
+            const modelNames = allModels.map(m => m.name);
+
+            const seriesData = dimensions.map(dim => {
+                return {
+                    name: dim.name,
+                    type: 'bar',
+                    barGap: '20%', // 设置柱子间距
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: allModels.map(model => {
+                        const scoreData = model.dim_scores[dim.id];
+                        return scoreData ? parseFloat(scoreData.avg.toFixed(2)) : 0;
+                    })
+                };
+            });
+
             const dimensionOption = {
                 tooltip: {
                     trigger: 'axis',
                     axisPointer: {
                         type: 'shadow'
                     },
-                    // 更新提示框格式，显示分数
-                    formatter: params => {
-                        let tooltip = `${params[0].axisValue}<br/>`;
-                        // 按分数值对提示进行排序
-                        params.sort((a, b) => b.value - a.value); 
-                        params.forEach(param => {
-                            tooltip += `${param.marker} ${param.seriesName}: <strong>${param.value.toFixed(2)}</strong><br/>`;
-                        });
-                        return tooltip;
-                    },
                     backgroundColor: 'rgba(26, 31, 58, 0.95)',
                     borderColor: 'rgba(148, 163, 184, 0.2)',
-                    textStyle: {
-                        color: '#ffffff'
-                    }
+                    textStyle: { color: '#ffffff' }
                 },
                 legend: {
-                    data: topModels.map(item => item.name),
+                    data: dimensions.map(d => d.name), // 图例为维度名称
                     top: 10,
-                    textStyle: {
-                        color: '#94a3b8'
-                    }
+                    textStyle: { color: '#94a3b8' }
                 },
                 grid: {
                     left: '3%',
@@ -849,48 +843,49 @@
                 },
                 xAxis: {
                     type: 'category',
-                    data: dimensions.map(dim => dim.name),
+                    data: modelNames, // X轴数据为模型名称
                     axisLabel: {
                         interval: 0,
                         rotate: 30,
                         color: '#94a3b8'
                     },
-                    axisLine: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.2)'
-                        }
-                    },
-                    axisTick: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.2)'
-                        }
-                    }
+                    axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
+                    axisTick: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } }
                 },
-                // 更新Y轴，显示分数而不是名次
                 yAxis: {
                     type: 'value',
                     name: '平均得分',
                     min: 0,
                     max: 5, // 假设最高分为5分
-                    axisLabel: {
-                        color: '#94a3b8'
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.2)'
-                        }
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.1)'
-                        }
-                    }
+                    axisLabel: { color: '#94a3b8' },
+                    axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
+                    splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.1)' } }
                 },
-                series: seriesData
+                series: seriesData // 系列数据为按维度组织的得分
             };
             // --- 结束修改 ---
             
             dimensionChart.setOption(dimensionOption);
+
+                        // --- 新增代码：为维度对比图表添加点击事件 ---
+            dimensionChart.on('click', params => {
+                let modelName = null;
+                // 检查是对X轴标签的点击
+                if (params.componentType === 'xAxis') {
+                    modelName = params.value;
+                } 
+                // 检查是对柱子（系列）的点击
+                else if (params.componentType === 'series' && params.seriesType === 'bar') {
+                    // 从 modelNames 数组中根据索引获取模型名称
+                    modelName = modelNames[params.dataIndex];
+                }
+                
+                // 如果成功获取模型名称，则跳转
+                if (modelName) {
+                    goToModelDetail(modelName);
+                }
+            });
+            // --- 新增代码结束 ---
             
             // 响应式
             window.addEventListener('resize', () => dimensionChart.resize());

@@ -1,0 +1,241 @@
+/* static/css/light-theme.css */
+
+/* 浅色科技主题定义 */
+:root.light-theme {
+    /* 浅色背景系统 */
+    --tech-bg-primary: #f8fafc;
+    --tech-bg-secondary: #f1f5f9;
+    --tech-bg-card: #ffffff;
+    --tech-bg-hover: #e2e8f0;
+    
+    /* 调整后的浅色主题色彩 */
+    --tech-accent-cyan: #0891b2;
+    --tech-accent-purple: #7c3aed;
+    --tech-accent-pink: #ec4899;
+    --tech-accent-green: #059669;
+    --tech-accent-yellow: #d97706;
+    
+    /* 浅色文字系统 */
+    --tech-text-primary: #0f172a;
+    --tech-text-secondary: #475569;
+    --tech-text-muted: #94a3b8;
+    
+    /* 边框和分割线 */
+    --tech-border: rgba(203, 213, 225, 0.7);
+    --tech-border-light: rgba(203, 213, 225, 1);
+    
+    /* 调整后的浅色渐变 */
+    --tech-gradient-1: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+    --tech-gradient-2: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+    --tech-gradient-3: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+    --tech-gradient-4: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+/* 浅色主题特定样式调整 */
+.light-theme {
+    background: var(--tech-bg-primary);
+    color: var(--tech-text-primary);
+}
+
+/* 移除深色背景效果 */
+.light-theme body::before {
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(244, 114, 182, 0.05) 0%, transparent 50%);
+}
+
+/* 调整网格背景 */
+.light-theme body::after {
+    background-image: 
+        linear-gradient(rgba(203, 213, 225, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(203, 213, 225, 0.3) 1px, transparent 1px);
+}
+
+/* 霓虹效果调整 */
+.light-theme .neon-glow {
+    filter: drop-shadow(0 0 5px currentColor);
+}
+
+.light-theme .neon-text {
+    text-shadow: 
+        0 0 3px rgba(8, 145, 178, 0.3),
+        0 0 6px rgba(8, 145, 178, 0.2);
+}
+
+/* 头部样式调整 */
+.light-theme .tech-header {
+    background: linear-gradient(180deg, var(--tech-bg-card) 0%, transparent 100%);
+    border-bottom: 1px solid var(--tech-border);
+}
+
+.light-theme .tech-header::before {
+    opacity: 0.05;
+}
+
+/* 卡片阴影调整 */
+.light-theme .tech-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .tech-card:hover {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* 表格样式调整 */
+.light-theme .tech-table thead {
+    background: var(--tech-bg-secondary);
+    border-bottom: 2px solid var(--tech-accent-cyan);
+}
+
+.light-theme .tech-table tbody tr:hover {
+    background: var(--tech-bg-hover);
+}
+
+/* 按钮样式调整 */
+.light-theme .tech-btn {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .tech-btn:hover {
+    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.2);
+}
+
+/* 图表容器调整 */
+.light-theme .tech-chart-container {
+    background: var(--tech-bg-secondary);
+    box-shadow: inset 0 0 0 1px var(--tech-border);
+}
+
+/* 排名徽章调整 */
+.light-theme .rank-other {
+    background: var(--tech-bg-hover);
+    border: 2px solid var(--tech-accent-cyan);
+    color: var(--tech-text-primary);
+}
+
+/* Tooltip 样式调整 */
+.light-theme .echarts-tooltip {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid var(--tech-border) !important;
+    color: var(--tech-text-primary) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 数据标签调整 */
+.light-theme .data-label {
+    background: var(--tech-bg-secondary);
+    border: 1px solid var(--tech-border);
+    color: var(--tech-text-primary);
+}
+
+/* 进度条调整 */
+.light-theme .tech-progress {
+    background: var(--tech-bg-secondary);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 模型详情页特定调整 */
+.light-theme .model-hero {
+    background: var(--tech-bg-card);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.light-theme .info-card {
+    background: var(--tech-bg-card);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.light-theme .description-card {
+    background: var(--tech-bg-secondary);
+}
+
+/* 返回按钮调整 */
+.light-theme .back-button {
+    background: var(--tech-bg-card);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.light-theme .back-button:hover {
+    background: var(--tech-bg-hover);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 主题切换按钮样式 */
+.theme-switcher {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    background: var(--tech-bg-card);
+    border: 2px solid var(--tech-border-light);
+    border-radius: 50px;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: var(--tech-transition);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-switcher:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.theme-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: var(--tech-transition);
+}
+
+.theme-icon.sun {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.theme-icon.moon {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.theme-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.theme-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0 0.5rem;
+    color: var(--tech-text-primary);
+}
+
+/* 切换动画 */
+.theme-transition * {
+    transition: background-color 0.3s ease, 
+                color 0.3s ease, 
+                border-color 0.3s ease,
+                box-shadow 0.3s ease !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .theme-switcher {
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+    
+    .theme-text {
+        display: none;
+    }
+    
+    .theme-switcher {
+        padding: 0.75rem;
+    }
+}

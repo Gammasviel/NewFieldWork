@@ -16,6 +16,8 @@
     
     <!-- 科技风格CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tech-style.css') }}">
+    <!-- 新增：浅色主题CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/light-theme.css') }}">
     
     <style>
         /* 页面特定样式 */
@@ -245,6 +247,9 @@
             }
         }
     </style>
+    
+    <!-- 新增：主题切换脚本 -->
+    <script src="{{ url_for('static', filename='js/theme-switcher.js') }}"></script>
 </head>
 <body>
     <header class="tech-header">
@@ -434,276 +439,262 @@
         const radarData = {{ radar_data|tojson }};
         const pieData = {{ bar_data|tojson }};
         
-        // ECharts 科技主题
-        const techTheme = {
-            color: ['#00d9ff', '#7c3aed', '#ec4899', '#10b981', '#f59e0b'],
-            backgroundColor: 'transparent',
-            textStyle: {
-                color: '#94a3b8'
-            }
-        };
+        // 存储图表实例
+        let charts = {};
 
-        // 1. 雷达图
-        const radarChartDom = document.getElementById('radar-chart');
-        const radarChart = echarts.init(radarChartDom, techTheme);
-        
-        const radarOption = {
-            tooltip: {
-                trigger: 'item',
-                backgroundColor: 'rgba(26, 31, 58, 0.95)',
-                borderColor: 'rgba(148, 163, 184, 0.2)',
-                textStyle: {
-                    color: '#ffffff'
-                },
-                formatter: function(params) {
-                    let tooltipStr = `<div style="font-weight: 600; margin-bottom: 8px;">${params.name}</div>`;
-                    const indicators = radarData.indicators;
-                    const values = params.data.value;
-                    for (let i = 0; i < indicators.length; i++) {
-                        const color = values[i] >= indicators[i].max * 0.8 ? '#10b981' : 
-                                    values[i] >= indicators[i].max * 0.6 ? '#f59e0b' : '#ec4899';
-                        tooltipStr += `
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0;">
-                                <span>${indicators[i].name}:</span>
-                                <span style="color: ${color}; font-weight: 600; margin-left: 20px;">
-                                    ${values[i].toFixed(2)}${i === 0 ? '%' : ''}
-                                </span>
-                            </div>
-                        `;
-                    }
-                    return tooltipStr;
+        const initCharts = () => {
+            // 使用主题切换器提供的主题
+            const techTheme = window.ThemeSwitcher ? window.ThemeSwitcher.getEChartsTheme() : {};
+
+            // 1. 雷达图
+            const radarChartDom = document.getElementById('radar-chart');
+            if (radarChartDom) {
+                if (charts.radarChart) {
+                    charts.radarChart.dispose();
                 }
-            },
-            radar: {
-                indicator: radarData.indicators,
-                shape: 'polygon',
-                splitNumber: 4,
-                axisName: {
-                    color: '#94a3b8',
-                    fontSize: 12
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: 'rgba(148, 163, 184, 0.1)'
-                    }
-                },
-                splitArea: {
-                    areaStyle: {
-                        color: ['rgba(124, 58, 237, 0.02)', 'rgba(124, 58, 237, 0.04)',
-                                'rgba(124, 58, 237, 0.06)', 'rgba(124, 58, 237, 0.08)']
-                    }
-                },
-                axisLine: {
-                    lineStyle: {
-                        color: 'rgba(148, 163, 184, 0.2)'
-                    }
-                }
-            },
-            series: [{
-                name: '{{ llm.name }}',
-                type: 'radar',
-                symbol: 'circle',
-                symbolSize: 8,
-                lineStyle: {
-                    width: 3,
-                    color: '#00d9ff',
-                    shadowBlur: 10,
-                    shadowColor: 'rgba(0, 217, 255, 0.5)'
-                },
-                itemStyle: {
-                    color: '#00d9ff',
-                    borderColor: '#fff',
-                    borderWidth: 2,
-                    shadowBlur: 10,
-                    shadowColor: 'rgba(0, 217, 255, 0.5)'
-                },
-                areaStyle: {
-                    color: {
-                        type: 'radial',
-                        x: 0.5,
-                        y: 0.5,
-                        r: 0.5,
-                        colorStops: [{
-                            offset: 0, color: 'rgba(0, 217, 255, 0.3)'
-                        }, {
-                            offset: 1, color: 'rgba(124, 58, 237, 0.1)'
-                        }]
-                    }
-                },
-                data: [{
-                    value: radarData.values,
-                    name: '{{ llm.name }}'
-                }],
-                emphasis: {
-                    lineStyle: {
-                        width: 4
+                
+                charts.radarChart = echarts.init(radarChartDom, techTheme);
+                
+                const radarOption = {
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: function(params) {
+                            let tooltipStr = `<div style="font-weight: 600; margin-bottom: 8px;">${params.name}</div>`;
+                            const indicators = radarData.indicators;
+                            const values = params.data.value;
+                            for (let i = 0; i < indicators.length; i++) {
+                                const color = values[i] >= indicators[i].max * 0.8 ? techTheme.color[3] : 
+                                            values[i] >= indicators[i].max * 0.6 ? techTheme.color[4] : techTheme.color[2];
+                                tooltipStr += `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0;">
+                                        <span>${indicators[i].name}:</span>
+                                        <span style="color: ${color}; font-weight: 600; margin-left: 20px;">
+                                            ${values[i].toFixed(2)}${i === 0 ? '%' : ''}
+                                        </span>
+                                    </div>
+                                `;
+                            }
+                            return tooltipStr;
+                        }
                     },
-                    itemStyle: {
-                        symbolSize: 12
-                    }
-                }
-            }]
-        };
-        
-        radarChart.setOption(radarOption);
-
-        // 2. 饼图
-        const pieChartDom = document.getElementById('pie-chart');
-        const pieChart = echarts.init(pieChartDom, techTheme);
-        
-        // 使用协调的渐变色
-        const gradientColors = [
-            {start: '#00d9ff', end: '#0891b2'},
-            {start: '#7c3aed', end: '#6366f1'},
-            {start: '#ec4899', end: '#f43f5e'},
-            {start: '#10b981', end: '#059669'},
-            {start: '#f59e0b', end: '#dc2626'}
-        ];
-        
-        const pieDataWithStyle = pieData.map((item, index) => ({
-            ...item,
-            itemStyle: {
-                color: {
-                    type: 'linear',
-                    x: 0,
-                    y: 0,
-                    x2: 1,
-                    y2: 1,
-                    colorStops: [{
-                        offset: 0,
-                        color: gradientColors[index % gradientColors.length].start
-                    }, {
-                        offset: 1,
-                        color: gradientColors[index % gradientColors.length].end
+                    radar: {
+                        indicator: radarData.indicators,
+                        shape: 'polygon',
+                        splitNumber: 4,
+                        axisName: {
+                            color: techTheme.textStyle.color,
+                            fontSize: 12
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: techTheme.categoryAxis.splitLine.lineStyle.color
+                            }
+                        },
+                        splitArea: {
+                            areaStyle: {
+                                color: ['rgba(124, 58, 237, 0.02)', 'rgba(124, 58, 237, 0.04)',
+                                        'rgba(124, 58, 237, 0.06)', 'rgba(124, 58, 237, 0.08)']
+                            }
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: techTheme.categoryAxis.axisLine.lineStyle.color
+                            }
+                        }
+                    },
+                    series: [{
+                        name: '{{ llm.name }}',
+                        type: 'radar',
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        lineStyle: {
+                            width: 3,
+                            color: techTheme.color[0],
+                            shadowBlur: 10,
+                            shadowColor: techTheme.color[0] + '80'
+                        },
+                        itemStyle: {
+                            color: techTheme.color[0],
+                            borderColor: '#fff',
+                            borderWidth: 2,
+                            shadowBlur: 10,
+                            shadowColor: techTheme.color[0] + '80'
+                        },
+                        areaStyle: {
+                            color: {
+                                type: 'radial',
+                                x: 0.5,
+                                y: 0.5,
+                                r: 0.5,
+                                colorStops: [{
+                                    offset: 0, color: techTheme.color[0] + '40'
+                                }, {
+                                    offset: 1, color: techTheme.color[1] + '20'
+                                }]
+                            }
+                        },
+                        data: [{
+                            value: radarData.values,
+                            name: '{{ llm.name }}'
+                        }],
+                        emphasis: {
+                            lineStyle: {
+                                width: 4
+                            },
+                            itemStyle: {
+                                symbolSize: 12
+                            }
+                        }
                     }]
-                }
+                };
+                
+                charts.radarChart.setOption(radarOption);
             }
-        }));
-        
-        const pieOption = {
-            tooltip: {
-                trigger: 'item',
-                backgroundColor: 'rgba(26, 31, 58, 0.95)',
-                borderColor: 'rgba(148, 163, 184, 0.2)',
-                textStyle: {
-                    color: '#ffffff'
-                },
-                formatter: function(params) {
-                    const score = params.value.toFixed(2);
-                    return `
-                        <div style="font-weight: 600; margin-bottom: 4px;">${params.name}</div>
-                        <div>得分: ${score}</div>
-                        <div>占比: ${params.percent}%</div>
-                    `;
-                }
-            },
-            legend: {
-                orient: 'vertical',
-                left: 'left',
-                top: 'center',
-                textStyle: {
-                    color: '#94a3b8'
-                },
-                icon: 'circle'
-            },
-            series: [{
-                name: '得分分布',
-                type: 'pie',
-                radius: ['40%', '70%'],
-                center: ['60%', '50%'],
-                avoidLabelOverlap: false,
-                padAngle: 2,
-                itemStyle: {
-                    borderRadius: 10,
-                    borderColor: 'transparent',
-                    borderWidth: 2
-                },
-                label: {
-                    show: true,
-                    position: 'outside',
-                    formatter: '{b}\n{d}%',
-                    color: '#94a3b8',
-                    fontSize: 12
-                },
-                labelLine: {
-                    show: true,
-                    length: 15,
-                    length2: 10,
-                    lineStyle: {
-                        color: 'rgba(148, 163, 184, 0.3)'
-                    }
-                },
-                data: pieDataWithStyle,
-                emphasis: {
-                    itemStyle: {
-                        shadowBlur: 20,
-                        shadowOffsetX: 0,
-                        shadowColor: 'rgba(0, 0, 0, 0.5)',
-                        borderColor: '#fff',
-                        borderWidth: 2
-                    },
-                    label: {
-                        show: true,
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        color: '#ffffff'
-                    }
-                }
-            }]
-        };
-        
-        pieChart.setOption(pieOption);
 
-        // 响应式
-        window.addEventListener('resize', function() {
-            radarChart.resize();
-            pieChart.resize();
-        });
-        
-        // 添加交互动画
-        let autoRotateInterval = setInterval(() => {
-            const dataLen = pieData.length;
-            const currentIndex = Math.floor(Math.random() * dataLen);
-            
-            pieChart.dispatchAction({
-                type: 'highlight',
-                seriesIndex: 0,
-                dataIndex: currentIndex
-            });
-            
-            setTimeout(() => {
-                pieChart.dispatchAction({
-                    type: 'downplay',
-                    seriesIndex: 0,
-                    dataIndex: currentIndex
-                });
-            }, 1000);
-        }, 2000);
-        
-        // 鼠标悬停时停止自动动画
-        pieChartDom.addEventListener('mouseenter', () => {
-            clearInterval(autoRotateInterval);
-        });
-        
-        pieChartDom.addEventListener('mouseleave', () => {
-            autoRotateInterval = setInterval(() => {
-                const dataLen = pieData.length;
-                const currentIndex = Math.floor(Math.random() * dataLen);
+            // 2. 饼图
+            const pieChartDom = document.getElementById('pie-chart');
+            if (pieChartDom) {
+                if (charts.pieChart) {
+                    charts.pieChart.dispose();
+                }
                 
-                pieChart.dispatchAction({
-                    type: 'highlight',
-                    seriesIndex: 0,
-                    dataIndex: currentIndex
-                });
+                charts.pieChart = echarts.init(pieChartDom, techTheme);
                 
-                setTimeout(() => {
-                    pieChart.dispatchAction({
-                        type: 'downplay',
+                // 使用主题色彩
+                const pieDataWithStyle = pieData.map((item, index) => ({
+                    ...item,
+                    itemStyle: {
+                        color: techTheme.color[index % techTheme.color.length]
+                    }
+                }));
+                
+                const pieOption = {
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: function(params) {
+                            const score = params.value.toFixed(2);
+                            return `
+                                <div style="font-weight: 600; margin-bottom: 4px;">${params.name}</div>
+                                <div>得分: ${score}</div>
+                                <div>占比: ${params.percent}%</div>
+                            `;
+                        }
+                    },
+                    legend: {
+                        orient: 'vertical',
+                        left: 'left',
+                        top: 'center',
+                        icon: 'circle'
+                    },
+                    series: [{
+                        name: '得分分布',
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        center: ['60%', '50%'],
+                        avoidLabelOverlap: false,
+                        padAngle: 2,
+                        itemStyle: {
+                            borderRadius: 10,
+                            borderColor: 'transparent',
+                            borderWidth: 2
+                        },
+                        label: {
+                            show: true,
+                            position: 'outside',
+                            formatter: '{b}\n{d}%',
+                            fontSize: 12
+                        },
+                        labelLine: {
+                            show: true,
+                            length: 15,
+                            length2: 10,
+                            lineStyle: {
+                                color: techTheme.categoryAxis.axisLine.lineStyle.color
+                            }
+                        },
+                        data: pieDataWithStyle,
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 20,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)',
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            },
+                            label: {
+                                show: true,
+                                fontSize: 14,
+                                fontWeight: 'bold'
+                            }
+                        }
+                    }]
+                };
+                
+                charts.pieChart.setOption(pieOption);
+                
+                // 添加交互动画
+                let autoRotateInterval = setInterval(() => {
+                    const dataLen = pieData.length;
+                    const currentIndex = Math.floor(Math.random() * dataLen);
+                    
+                    charts.pieChart.dispatchAction({
+                        type: 'highlight',
                         seriesIndex: 0,
                         dataIndex: currentIndex
                     });
-                }, 1000);
-            }, 2000);
+                    
+                    setTimeout(() => {
+                        charts.pieChart.dispatchAction({
+                            type: 'downplay',
+                            seriesIndex: 0,
+                            dataIndex: currentIndex
+                        });
+                    }, 1000);
+                }, 2000);
+                
+                // 鼠标悬停时停止自动动画
+                pieChartDom.addEventListener('mouseenter', () => {
+                    clearInterval(autoRotateInterval);
+                });
+                
+                pieChartDom.addEventListener('mouseleave', () => {
+                    autoRotateInterval = setInterval(() => {
+                        const dataLen = pieData.length;
+                        const currentIndex = Math.floor(Math.random() * dataLen);
+                        
+                        charts.pieChart.dispatchAction({
+                            type: 'highlight',
+                            seriesIndex: 0,
+                            dataIndex: currentIndex
+                        });
+                        
+                        setTimeout(() => {
+                            charts.pieChart.dispatchAction({
+                                type: 'downplay',
+                                seriesIndex: 0,
+                                dataIndex: currentIndex
+                            });
+                        }, 1000);
+                    }, 2000);
+                });
+            }
+
+            // 响应式
+            window.addEventListener('resize', () => {
+                Object.values(charts).forEach(chart => {
+                    if (chart) chart.resize();
+                });
+            });
+        };
+
+        // 初始化图表
+        initCharts();
+
+        // 监听主题变化事件，重新初始化图表
+        window.addEventListener('themeChanged', (e) => {
+            setTimeout(() => {
+                initCharts();
+            }, 100);
         });
     });
     </script>

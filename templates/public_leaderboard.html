@@ -16,6 +16,8 @@
     
     <!-- 科技风格CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tech-style.css') }}">
+    <!-- 新增：浅色主题CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/light-theme.css') }}">
     
     <style>
         /* 页面特定样式 */
@@ -56,7 +58,7 @@
         }
         
         .stat-card:hover {
-            background: rgba(26, 31, 58, 0.8);
+            background: var(--tech-bg-hover);
             transform: translateY(-5px);
             border-color: var(--tech-accent-purple);
         }
@@ -123,7 +125,7 @@
             position: fixed;
             bottom: 2rem;
             right: 2rem;
-            z-index: 1000;
+            z-index: 999; /* 降低z-index，让主题切换按钮在上方 */
         }
         
         .quadrant-legend {
@@ -189,6 +191,9 @@
             }
         }
     </style>
+    
+    <!-- 新增：主题切换脚本 -->
+    <script src="{{ url_for('static', filename='js/theme-switcher.js') }}"></script>
 </head>
 <body>
     <header class="tech-header">
@@ -297,7 +302,7 @@
         <div class="tech-card">
             <h3 class="tech-card-title">
                 <i class="bi bi-radar-chart neon-glow" style="color: var(--tech-accent-pink);"></i>
-                各模型维度平均分对比 <!-- 修改这里 -->
+                各模型维度平均分对比
             </h3>
             <div id="dimension-bar-chart" class="tech-chart-container"></div>
         </div>
@@ -395,501 +400,382 @@
         
         if (!leaderboardData || leaderboardData.length === 0) return;
 
-        // ECharts 主题配置
-        const techTheme = {
-            color: ['#00d9ff', '#7c3aed', '#ec4899', '#10b981', '#f59e0b'],
-            backgroundColor: 'transparent',
-            textStyle: {
-                color: '#94a3b8'
-            },
-            title: {
-                textStyle: {
-                    color: '#ffffff'
-                }
-            },
-            legend: {
-                textStyle: {
-                    color: '#94a3b8'
-                }
-            },
-            tooltip: {
-                backgroundColor: 'rgba(26, 31, 58, 0.95)',
-                borderColor: 'rgba(148, 163, 184, 0.2)',
-                textStyle: {
-                    color: '#ffffff'
-                }
-            },
-            grid: {
-                borderColor: 'rgba(148, 163, 184, 0.1)'
-            },
-            categoryAxis: {
-                axisLine: {
-                    lineStyle: {
-                        color: 'rgba(148, 163, 184, 0.2)'
-                    }
-                },
-                axisTick: {
-                    lineStyle: {
-                        color: 'rgba(148, 163, 184, 0.2)'
-                    }
-                },
-                axisLabel: {
-                    color: '#94a3b8'
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: ['rgba(148, 163, 184, 0.1)']
-                    }
-                }
-            },
-            valueAxis: {
-                axisLine: {
-                    lineStyle: {
-                        color: 'rgba(148, 163, 184, 0.2)'
-                    }
-                },
-                axisTick: {
-                    lineStyle: {
-                        color: 'rgba(148, 163, 184, 0.2)'
-                    }
-                },
-                axisLabel: {
-                    color: '#94a3b8'
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: ['rgba(148, 163, 184, 0.1)']
-                    }
-                }
-            }
-        };
+        // 存储所有图表实例
+        let charts = {};
 
-        const goToModelDetail = (modelName) => {
-            if (modelName) {
-                window.location.href = `/model/detail/${encodeURIComponent(modelName)}`;
-            }
-        };
+        const initCharts = () => {
+            // 使用主题切换器提供的主题
+            const techTheme = window.ThemeSwitcher ? window.ThemeSwitcher.getEChartsTheme() : {};
 
-        // 1. 综合性能柱状图
-        const overallChartDom = document.getElementById('overall-bar-chart');
-        if (overallChartDom) {
-            const overallChart = echarts.init(overallChartDom, null, {renderer: 'canvas'});
-            const overallOption = {
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'cross'
-                    },
-                    backgroundColor: 'rgba(26, 31, 58, 0.95)',
-                    borderColor: 'rgba(148, 163, 184, 0.2)',
-                    textStyle: {
-                        color: '#ffffff'
-                    }
-                },
-                legend: {
-                    data: ['总得分', '响应率'],
-                    top: 10,
-                    textStyle: {
-                        color: '#94a3b8'
-                    }
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '15%',
-                    top: '15%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    data: leaderboardData.map(item => item.name),
-                    axisLabel: {
-                        interval: 0,
-                        rotate: 30,
-                        color: '#94a3b8'
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.2)'
-                        }
-                    },
-                    axisTick: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.2)'
-                        }
-                    },
-                    triggerEvent: true
-                },
-                yAxis: [
-                    {
-                        type: 'value',
-                        name: '得分',
-                        min: 0,
-                        max: 5,
-                        position: 'left',
-                        axisLabel: {
-                            formatter: '{value}',
-                            color: '#94a3b8'
-                        },
-                        axisLine: {
-                            lineStyle: {
-                                color: 'rgba(148, 163, 184, 0.2)'
-                            }
-                        },
-                        splitLine: {
-                            lineStyle: {
-                                color: 'rgba(148, 163, 184, 0.1)'
-                            }
-                        }
-                    },
-                    {
-                        type: 'value',
-                        name: '响应率',
-                        min: 0,
-                        max: 100,
-                        position: 'right',
-                        axisLabel: {
-                            formatter: '{value}%',
-                            color: '#94a3b8'
-                        },
-                        axisLine: {
-                            lineStyle: {
-                                color: 'rgba(148, 163, 184, 0.2)'
-                            }
-                        },
-                        splitLine: {
-                            show: false
-                        }
-                    }
-                ],
-                series: [
-                    {
-                        name: '总得分',
-                        type: 'bar',
-                        data: leaderboardData.map(item => ({
-                            value: parseFloat(item.avg_score.toFixed(2)),
-                            itemStyle: {
-                                color: {
-                                    type: 'linear',
-                                    x: 0,
-                                    y: 0,
-                                    x2: 0,
-                                    y2: 1,
-                                    colorStops: [{
-                                        offset: 0, color: '#00d9ff'
-                                    }, {
-                                        offset: 1, color: '#0891b2'
-                                    }]
-                                }
-                            }
-                        })),
-                        emphasis: {
-                            focus: 'series'
-                        }
-                    },
-                    {
-                        name: '响应率',
-                        type: 'line',
-                        yAxisIndex: 1,
-                        data: leaderboardData.map(item => parseFloat(item.response_rate.toFixed(2))),
-                        smooth: true,
-                        symbol: 'circle',
-                        symbolSize: 8,
-                        lineStyle: {
-                            width: 3,
-                            color: '#ec4899'
-                        },
-                        itemStyle: {
-                            color: '#ec4899',
-                            borderColor: '#fff',
-                            borderWidth: 2
-                        },
-                        emphasis: {
-                            focus: 'series'
-                        }
-                    }
-                ]
+            const goToModelDetail = (modelName) => {
+                if (modelName) {
+                    window.location.href = `/model/detail/${encodeURIComponent(modelName)}`;
+                }
             };
-            overallChart.setOption(overallOption);
-            overallChart.on('click', params => {
-                let modelName = null;
-                // 检查是对坐标轴、柱状图还是折线图的点击
-                if (params.componentType === 'xAxis') {
-                    modelName = params.value;
-                } else if (params.componentType === 'series' && (params.seriesType === 'bar' || params.seriesType === 'line')) {
-                    // 柱状图和折线图使用相同的数据索引
-                    modelName = leaderboardData[params.dataIndex].name;
+
+            // 1. 综合性能柱状图
+            const overallChartDom = document.getElementById('overall-bar-chart');
+            if (overallChartDom) {
+                // 如果已存在图表实例，先销毁
+                if (charts.overallChart) {
+                    charts.overallChart.dispose();
                 }
                 
-                // 如果成功获取模型名称，则跳转
-                if (modelName) {
-                    goToModelDetail(modelName);
-                }
-            });
-            
-            // 响应式
-            window.addEventListener('resize', () => overallChart.resize());
-        }
-
-        // 2. 四象限图
-        const quadrantChartDom = document.getElementById('quadrant-chart');
-        if (quadrantChartDom) {
-            const quadrantChart = echarts.init(quadrantChartDom, null, {renderer: 'canvas'});
-            
-            const quadrantOption = {
-                grid: {
-                    left: '10%',
-                    right: '10%',
-                    bottom: '10%',
-                    top: '10%'
-                },
-                tooltip: {
-                    formatter: params => {
-                        if (params.componentType === 'series' && params.seriesType === 'scatter') {
-                            return `${params.value[2]}<br/>响应率: ${params.value[0].toFixed(2)}%<br/>总得分: ${params.value[1].toFixed(2)}`;
-                        }
-                        return '';
-                    },
-                    backgroundColor: 'rgba(26, 31, 58, 0.95)',
-                    borderColor: 'rgba(148, 163, 184, 0.2)',
-                    textStyle: {
-                        color: '#ffffff'
-                    }
-                },
-                xAxis: {
-                    name: '响应率 (%)',
-                    nameLocation: 'middle',
-                    nameGap: 30,
-                    min: 85,
-                    max: 100,
-                    splitLine: {
-                        show: false
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.2)'
+                charts.overallChart = echarts.init(overallChartDom, techTheme);
+                const overallOption = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'cross'
                         }
                     },
-                    axisLabel: {
-                        color: '#94a3b8'
-                    }
-                },
-                yAxis: {
-                    name: '总得分',
-                    nameLocation: 'middle',
-                    nameGap: 40,
-                    min: 2,
-                    max: 4,
-                    splitLine: {
-                        show: false
+                    legend: {
+                        data: ['总得分', '响应率'],
+                        top: 10
                     },
-                    axisLine: {
-                        lineStyle: {
-                            color: 'rgba(148, 163, 184, 0.2)'
-                        }
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '15%',
+                        top: '15%',
+                        containLabel: true
                     },
-                    axisLabel: {
-                        color: '#94a3b8'
-                    }
-                },
-                series: [
-                    // 分割线
-                    {
-                        type: 'line',
-                        markLine: {
-                            silent: true,
-                            symbol: 'none',
-                            lineStyle: {
-                                type: 'dashed',
-                                color: 'rgba(148, 163, 184, 0.3)',
-                                width: 2
+                    xAxis: {
+                        type: 'category',
+                        data: leaderboardData.map(item => item.name),
+                        axisLabel: {
+                            interval: 0,
+                            rotate: 30
+                        },
+                        triggerEvent: true
+                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                            name: '得分',
+                            min: 0,
+                            max: 5,
+                            position: 'left',
+                            axisLabel: {
+                                formatter: '{value}'
+                            }
+                        },
+                        {
+                            type: 'value',
+                            name: '响应率',
+                            min: 0,
+                            max: 100,
+                            position: 'right',
+                            axisLabel: {
+                                formatter: '{value}%'
                             },
-                            data: [
-                                { xAxis: rateThreshold },
-                                { yAxis: scoreThreshold }
-                            ],
-                            label: {
+                            splitLine: {
                                 show: false
                             }
                         }
-                    },
-                    // 象限背景
-                    {
-                        type: 'custom',
-                        renderItem: function(params, api) {
-                            const xStart = api.coord([api.value(0), api.value(1)]);
-                            const xEnd = api.coord([api.value(2), api.value(3)]);
-                            const rectShape = echarts.graphic.clipRectByRect({
-                                x: xStart[0],
-                                y: xStart[1],
-                                width: xEnd[0] - xStart[0],
-                                height: xEnd[1] - xStart[1]
-                            }, {
-                                x: params.coordSys.x,
-                                y: params.coordSys.y,
-                                width: params.coordSys.width,
-                                height: params.coordSys.height
-                            });
-                            return rectShape && {
-                                type: 'rect',
-                                shape: rectShape,
-                                style: api.style()
-                            };
-                        },
-                        data: [
-                            {value: [rateThreshold, scoreThreshold, 100, 4], itemStyle: {color: 'rgba(16, 185, 129, 0.1)'}},
-                            {value: [85, scoreThreshold, rateThreshold, 4], itemStyle: {color: 'rgba(0, 217, 255, 0.1)'}},
-                            {value: [rateThreshold, 2, 100, scoreThreshold], itemStyle: {color: 'rgba(245, 158, 11, 0.1)'}},
-                            {value: [85, 2, rateThreshold, scoreThreshold], itemStyle: {color: 'rgba(236, 72, 153, 0.1)'}}
-                        ]
-                    },
-                    // 散点数据
-                    {
-                        name: '模型分布',
-                        type: 'scatter',
-                        symbolSize: 20,
-                        data: leaderboardData.map(item => [
-                            item.response_rate,
-                            item.avg_score,
-                            item.name
-                        ]),
-                        itemStyle: {
-                            color: params => {
-                                const [x, y] = params.value;
-                                if (x >= rateThreshold && y >= scoreThreshold) return '#10b981';
-                                if (x < rateThreshold && y >= scoreThreshold) return '#00d9ff';
-                                if (x >= rateThreshold && y < scoreThreshold) return '#f59e0b';
-                                return '#ec4899';
-                            },
-                            borderColor: '#fff',
-                            borderWidth: 2,
-                            shadowBlur: 10,
-                            shadowColor: 'rgba(0, 0, 0, 0.3)'
-                        },
-                        emphasis: {
-                            scale: 1.5,
-                            itemStyle: {
-                                shadowBlur: 20
+                    ],
+                    series: [
+                        {
+                            name: '总得分',
+                            type: 'bar',
+                            data: leaderboardData.map(item => ({
+                                value: parseFloat(item.avg_score.toFixed(2)),
+                                itemStyle: {
+                                    color: {
+                                        type: 'linear',
+                                        x: 0,
+                                        y: 0,
+                                        x2: 0,
+                                        y2: 1,
+                                        colorStops: [{
+                                            offset: 0, color: techTheme.color[0]
+                                        }, {
+                                            offset: 1, color: techTheme.color[0] + '80'
+                                        }]
+                                    }
+                                }
+                            })),
+                            emphasis: {
+                                focus: 'series'
                             }
                         },
-                        label: {
-                            show: true,
-                            position: 'top',
-                            formatter: '{@[2]}',
-                            color: '#94a3b8',
-                            fontSize: 11
+                        {
+                            name: '响应率',
+                            type: 'line',
+                            yAxisIndex: 1,
+                            data: leaderboardData.map(item => parseFloat(item.response_rate.toFixed(2))),
+                            smooth: true,
+                            symbol: 'circle',
+                            symbolSize: 8,
+                            lineStyle: {
+                                width: 3,
+                                color: techTheme.color[2]
+                            },
+                            itemStyle: {
+                                color: techTheme.color[2],
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            },
+                            emphasis: {
+                                focus: 'series'
+                            }
                         }
-                    }
-                ]
-            };
-            
-            quadrantChart.setOption(quadrantOption);
-            quadrantChart.on('click', params => {
-                if (params.componentType === 'series' && params.seriesType === 'scatter') {
-                    goToModelDetail(params.value[2]);
-                }
-            });
-            
-            // 响应式
-            window.addEventListener('resize', () => quadrantChart.resize());
-        }
-
-        // 3. 维度对比图
-        const dimensionChartDom = document.getElementById('dimension-bar-chart');
-        if (dimensionChartDom && dimensions && dimensions.length > 0) {
-            const dimensionChart = echarts.init(dimensionChartDom, null, {renderer: 'canvas'});
-            
-            // --- 开始修改 ---
-            // 重新组织数据结构：X轴为模型，Series为维度
-            const allModels = leaderboardData; // 显示所有模型
-            const modelNames = allModels.map(m => m.name);
-
-            const seriesData = dimensions.map(dim => {
-                return {
-                    name: dim.name,
-                    type: 'bar',
-                    barGap: '20%', // 设置柱子间距
-                    emphasis: {
-                        focus: 'series'
-                    },
-                    data: allModels.map(model => {
-                        const scoreData = model.dim_scores[dim.id];
-                        return scoreData ? parseFloat(scoreData.avg.toFixed(2)) : 0;
-                    })
+                    ]
                 };
-            });
+                charts.overallChart.setOption(overallOption);
+                charts.overallChart.on('click', params => {
+                    let modelName = null;
+                    if (params.componentType === 'xAxis') {
+                        modelName = params.value;
+                    } else if (params.componentType === 'series' && (params.seriesType === 'bar' || params.seriesType === 'line')) {
+                        modelName = leaderboardData[params.dataIndex].name;
+                    }
+                    
+                    if (modelName) {
+                        goToModelDetail(modelName);
+                    }
+                });
+            }
 
-            const dimensionOption = {
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'shadow'
-                    },
-                    backgroundColor: 'rgba(26, 31, 58, 0.95)',
-                    borderColor: 'rgba(148, 163, 184, 0.2)',
-                    textStyle: { color: '#ffffff' }
-                },
-                legend: {
-                    data: dimensions.map(d => d.name), // 图例为维度名称
-                    top: 10,
-                    textStyle: { color: '#94a3b8' }
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    top: '15%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    data: modelNames, // X轴数据为模型名称
-                    axisLabel: {
-                        interval: 0,
-                        rotate: 30,
-                        color: '#94a3b8'
-                    },
-                    axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
-                    axisTick: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '平均得分',
-                    min: 0,
-                    max: 5, // 假设最高分为5分
-                    axisLabel: { color: '#94a3b8' },
-                    axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
-                    splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.1)' } }
-                },
-                series: seriesData // 系列数据为按维度组织的得分
-            };
-            // --- 结束修改 ---
-            
-            dimensionChart.setOption(dimensionOption);
-
-                        // --- 新增代码：为维度对比图表添加点击事件 ---
-            dimensionChart.on('click', params => {
-                let modelName = null;
-                // 检查是对X轴标签的点击
-                if (params.componentType === 'xAxis') {
-                    modelName = params.value;
-                } 
-                // 检查是对柱子（系列）的点击
-                else if (params.componentType === 'series' && params.seriesType === 'bar') {
-                    // 从 modelNames 数组中根据索引获取模型名称
-                    modelName = modelNames[params.dataIndex];
+            // 2. 四象限图
+            const quadrantChartDom = document.getElementById('quadrant-chart');
+            if (quadrantChartDom) {
+                if (charts.quadrantChart) {
+                    charts.quadrantChart.dispose();
                 }
                 
-                // 如果成功获取模型名称，则跳转
-                if (modelName) {
-                    goToModelDetail(modelName);
+                charts.quadrantChart = echarts.init(quadrantChartDom, techTheme);
+                
+                const quadrantOption = {
+                    grid: {
+                        left: '10%',
+                        right: '10%',
+                        bottom: '10%',
+                        top: '10%'
+                    },
+                    tooltip: {
+                        formatter: params => {
+                            if (params.componentType === 'series' && params.seriesType === 'scatter') {
+                                return `${params.value[2]}<br/>响应率: ${params.value[0].toFixed(2)}%<br/>总得分: ${params.value[1].toFixed(2)}`;
+                            }
+                            return '';
+                        }
+                    },
+                    xAxis: {
+                        name: '响应率 (%)',
+                        nameLocation: 'middle',
+                        nameGap: 30,
+                        min: 85,
+                        max: 100,
+                        splitLine: {
+                            show: false
+                        }
+                    },
+                    yAxis: {
+                        name: '总得分',
+                        nameLocation: 'middle',
+                        nameGap: 40,
+                        min: 2,
+                        max: 4,
+                        splitLine: {
+                            show: false
+                        }
+                    },
+                    series: [
+                        // 分割线
+                        {
+                            type: 'line',
+                            markLine: {
+                                silent: true,
+                                symbol: 'none',
+                                lineStyle: {
+                                    type: 'dashed',
+                                    color: techTheme.categoryAxis.axisLine.lineStyle.color,
+                                    width: 2
+                                },
+                                data: [
+                                    { xAxis: rateThreshold },
+                                    { yAxis: scoreThreshold }
+                                ],
+                                label: {
+                                    show: false
+                                }
+                            }
+                        },
+                        // 象限背景
+                        {
+                            type: 'custom',
+                            renderItem: function(params, api) {
+                                const xStart = api.coord([api.value(0), api.value(1)]);
+                                const xEnd = api.coord([api.value(2), api.value(3)]);
+                                const rectShape = echarts.graphic.clipRectByRect({
+                                    x: xStart[0],
+                                    y: xStart[1],
+                                    width: xEnd[0] - xStart[0],
+                                    height: xEnd[1] - xStart[1]
+                                }, {
+                                    x: params.coordSys.x,
+                                    y: params.coordSys.y,
+                                    width: params.coordSys.width,
+                                    height: params.coordSys.height
+                                });
+                                return rectShape && {
+                                    type: 'rect',
+                                    shape: rectShape,
+                                    style: api.style()
+                                };
+                            },
+                            data: [
+                                {value: [rateThreshold, scoreThreshold, 100, 4], itemStyle: {color: techTheme.color[3] + '20'}},
+                                {value: [85, scoreThreshold, rateThreshold, 4], itemStyle: {color: techTheme.color[0] + '20'}},
+                                {value: [rateThreshold, 2, 100, scoreThreshold], itemStyle: {color: techTheme.color[4] + '20'}},
+                                {value: [85, 2, rateThreshold, scoreThreshold], itemStyle: {color: techTheme.color[2] + '20'}}
+                            ]
+                        },
+                        // 散点数据
+                        {
+                            name: '模型分布',
+                            type: 'scatter',
+                            symbolSize: 20,
+                            data: leaderboardData.map(item => [
+                                item.response_rate,
+                                item.avg_score,
+                                item.name
+                            ]),
+                            itemStyle: {
+                                color: params => {
+                                    const [x, y] = params.value;
+                                    if (x >= rateThreshold && y >= scoreThreshold) return techTheme.color[3];
+                                    if (x < rateThreshold && y >= scoreThreshold) return techTheme.color[0];
+                                    if (x >= rateThreshold && y < scoreThreshold) return techTheme.color[4];
+                                    return techTheme.color[2];
+                                },
+                                borderColor: '#fff',
+                                borderWidth: 2,
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(0, 0, 0, 0.3)'
+                            },
+                            emphasis: {
+                                scale: 1.5,
+                                itemStyle: {
+                                    shadowBlur: 20
+                                }
+                            },
+                            label: {
+                                show: true,
+                                position: 'top',
+                                formatter: '{@[2]}',
+                                fontSize: 11
+                            }
+                        }
+                    ]
+                };
+                
+                charts.quadrantChart.setOption(quadrantOption);
+                charts.quadrantChart.on('click', params => {
+                    if (params.componentType === 'series' && params.seriesType === 'scatter') {
+                        goToModelDetail(params.value[2]);
+                    }
+                });
+            }
+
+            // 3. 维度对比图
+            const dimensionChartDom = document.getElementById('dimension-bar-chart');
+            if (dimensionChartDom && dimensions && dimensions.length > 0) {
+                if (charts.dimensionChart) {
+                    charts.dimensionChart.dispose();
                 }
-            });
-            // --- 新增代码结束 ---
-            
+                
+                charts.dimensionChart = echarts.init(dimensionChartDom, techTheme);
+                
+                const allModels = leaderboardData;
+                const modelNames = allModels.map(m => m.name);
+
+                const seriesData = dimensions.map((dim, index) => {
+                    return {
+                        name: dim.name,
+                        type: 'bar',
+                        barGap: '20%',
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: allModels.map(model => {
+                            const scoreData = model.dim_scores[dim.id];
+                            return scoreData ? parseFloat(scoreData.avg.toFixed(2)) : 0;
+                        }),
+                        itemStyle: {
+                            color: techTheme.color[index % techTheme.color.length]
+                        }
+                    };
+                });
+
+                const dimensionOption = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'shadow'
+                        }
+                    },
+                    legend: {
+                        data: dimensions.map(d => d.name),
+                        top: 10
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        top: '15%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: modelNames,
+                        axisLabel: {
+                            interval: 0,
+                            rotate: 30
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '平均得分',
+                        min: 0,
+                        max: 5
+                    },
+                    series: seriesData
+                };
+                
+                charts.dimensionChart.setOption(dimensionOption);
+                charts.dimensionChart.on('click', params => {
+                    let modelName = null;
+                    if (params.componentType === 'xAxis') {
+                        modelName = params.value;
+                    } else if (params.componentType === 'series' && params.seriesType === 'bar') {
+                        modelName = modelNames[params.dataIndex];
+                    }
+                    
+                    if (modelName) {
+                        goToModelDetail(modelName);
+                    }
+                });
+            }
+
             // 响应式
-            window.addEventListener('resize', () => dimensionChart.resize());
-        }
+            window.addEventListener('resize', () => {
+                Object.values(charts).forEach(chart => {
+                    if (chart) chart.resize();
+                });
+            });
+        };
+
+        // 初始化图表
+        initCharts();
+
+        // 监听主题变化事件，重新初始化图表
+        window.addEventListener('themeChanged', (e) => {
+            setTimeout(() => {
+                initCharts();
+            }, 100);
+        });
     });
     </script>
 </body>

@@ -35,6 +35,37 @@
 .light-theme {
     background: var(--tech-bg-primary);
     color: var(--tech-text-primary);
+    /* 更鲜艳的主色调 */
+    --tech-accent-cyan: #0ea5e9;     /* 从 #06b6d4 改为更鲜艳 */
+    --tech-accent-purple: #8b5cf6;   /* 从 #7c3aed 改为更鲜艳 */
+    --tech-accent-pink: #ec4899;     /* 从 #ec4899 保持不变 */
+    --tech-accent-yellow: #f59e0b;   /* 从 #f59e0b 保持不变 */
+    --tech-accent-green: #10b981;    /* 从 #22c55e 改为更鲜艳 */
+    --tech-accent-blue: #3b82f6;     /* 从 #3b82f6 保持不变 */
+    
+    /* 更鲜艳的渐变色 */
+    --tech-gradient-1: linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%);
+    --tech-gradient-2: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    --tech-gradient-3: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
+    
+    /* 背景色保持清爽 */
+    --tech-bg-primary: #ffffff;
+    --tech-bg-secondary: #f8fafc;
+    --tech-bg-card: #ffffff;
+    --tech-bg-hover: #f1f5f9;
+    
+    /* 边框色稍微加深一点对比度 */
+    --tech-border: #e2e8f0;
+    --tech-border-light: #cbd5e1;
+    
+    /* 文字色加强对比度 */
+    --tech-text-primary: #0f172a;
+    --tech-text-secondary: #334155;
+    --tech-text-muted: #64748b;
+    
+    /* 霓虹效果调整为更适合浅色的阴影 */
+    --tech-glow: 0 0 20px rgba(14, 165, 233, 0.3);
+    --tech-glow-intense: 0 0 40px rgba(139, 92, 246, 0.4);
 }
 
 /* 移除深色背景效果 */
@@ -238,4 +269,24 @@
     .theme-switcher {
         padding: 0.75rem;
     }
+}
+
+/* 浅色主题的动画方块 */
+.light-theme .animated-background::before {
+    background-image: 
+        repeating-linear-gradient(90deg, 
+            transparent, 
+            transparent 2px, 
+            rgba(124, 58, 237, 0.03) 2px, 
+            rgba(124, 58, 237, 0.03) 4px),
+        repeating-linear-gradient(0deg, 
+            transparent, 
+            transparent 2px, 
+            rgba(0, 217, 255, 0.03) 2px, 
+            rgba(0, 217, 255, 0.03) 4px);
+}
+
+.light-theme .floating-squares .square {
+    background: linear-gradient(45deg, rgba(124, 58, 237, 0.1), rgba(0, 217, 255, 0.1));
+    border: 1px solid rgba(124, 58, 237, 0.2);
 }

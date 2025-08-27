@@ -149,19 +149,30 @@
         
         if (currentTheme === LIGHT_THEME) {
             return {
-                color: ['#0891b2', '#7c3aed', '#ec4899', '#059669', '#d97706'],
+                color: [
+                    '#0ea5e9',  // 天蓝色（更鲜艳）
+                    '#8b5cf6',  // 紫罗兰色（更鲜艳）
+                    '#10b981',  // 翡翠绿（保持鲜艳）
+                    '#f59e0b',  // 琥珀色（保持鲜艳）
+                    '#f43f5e',  // 玫瑰色（更鲜艳）
+                    '#3b82f6',  // 蓝色（更鲜艳）
+                    '#a855f7',  // 紫色（更鲜艳）
+                    '#14b8a6',  // 青绿色（更鲜艳）
+                    '#eab308',  // 黄色（更鲜艳）
+                    '#ec4899'   // 粉色（更鲜艳）
+                ],
                 backgroundColor: 'transparent',
                 textStyle: {
-                    color: '#475569'
+                    color: '#1e293b'  // 从 #475569 改为更深的颜色
                 },
                 title: {
                     textStyle: {
-                        color: '#0f172a'
+                        color: '#0f172a'  // 保持不变，已经够深
                     }
                 },
                 legend: {
                     textStyle: {
-                        color: '#475569'
+                        color: '#1e293b'  // 从 #475569 改为更深的颜色
                     }
                 },
                 tooltip: {
@@ -186,7 +197,7 @@
                         }
                     },
                     axisLabel: {
-                        color: '#475569'
+                        color: '#1e293b'  // 从 #475569 改为更深的颜色
                     },
                     splitLine: {
                         lineStyle: {
@@ -218,19 +229,30 @@
         } else {
             // 深色主题（默认）
             return {
-                color: ['#00d9ff', '#7c3aed', '#ec4899', '#10b981', '#f59e0b'],
+                color: [
+                    '#00d9ff',  // 保持原有的青色
+                    '#7c3aed',  // 保持原有的紫色
+                    '#10b981',  // 保持原有的绿色
+                    '#f59e0b',  // 保持原有的黄色
+                    '#ec4899',  // 保持原有的粉色
+                    '#3b82f6',  // 新增：蓝色
+                    '#8b5cf6',  // 新增：紫罗兰色
+                    '#06b6d4',  // 新增：青蓝色
+                    '#84cc16',  // 新增：酸橙色
+                    '#f43f5e'   // 新增：玫瑰色
+                ],
                 backgroundColor: 'transparent',
                 textStyle: {
-                    color: '#94a3b8'
+                    color: '#e2e8f0'  // 从 #94a3b8 改为更亮的颜色
                 },
                 title: {
                     textStyle: {
-                        color: '#ffffff'
+                        color: '#f8fafc'  // 从 #ffffff 改为略微柔和但依然明亮
                     }
                 },
                 legend: {
                     textStyle: {
-                        color: '#94a3b8'
+                        color: '#e2e8f0'  // 从 #94a3b8 改为更亮的颜色
                     }
                 },
                 tooltip: {
@@ -255,7 +277,7 @@
                         }
                     },
                     axisLabel: {
-                        color: '#94a3b8'
+                        color: '#cbd5e1'  // 从 #94a3b8 改为更亮的颜色
                     },
                     splitLine: {
                         lineStyle: {

@@ -243,71 +243,6 @@
         {% endif %}
 
         {% if leaderboard %}
-        <!-- 图表区域 -->
-        <div class="tech-card">
-            <h3 class="tech-card-title">
-                <i class="bi bi-bar-chart-line neon-glow" style="color: var(--tech-accent-cyan);"></i>
-                模型综合性能分析
-            </h3>
-            <div id="overall-bar-chart" class="tech-chart-container"></div>
-        </div>
-
-        <div class="tech-card">
-            <h3 class="tech-card-title">
-                <i class="bi bi-grid-3x3-gap neon-glow" style="color: var(--tech-accent-purple);"></i>
-                安全管制策略象限分析
-            </h3>
-            <div class="row">
-                <div class="col-lg-8">
-                    <div id="quadrant-chart" class="tech-chart-container"></div>
-                </div>
-                <div class="col-lg-4">
-                    <div style="padding: 1rem;">
-                        <h5 style="color: var(--tech-text-primary); margin-bottom: 1rem;">象限说明</h5>
-                        <div class="quadrant-legend">
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: var(--tech-accent-green);"></div>
-                                <div>
-                                    <div class="legend-title">精细化管制</div>
-                                    <div class="legend-desc">严格审核，高开放度</div>
-                                </div>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: var(--tech-accent-cyan);"></div>
-                                <div>
-                                    <div class="legend-title">稳健型管制</div>
-                                    <div class="legend-desc">严格审核，低开放度</div>
-                                </div>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: var(--tech-accent-yellow);"></div>
-                                <div>
-                                    <div class="legend-title">粗放型管制</div>
-                                    <div class="legend-desc">宽松审核，高开放度</div>
-                                </div>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: var(--tech-accent-pink);"></div>
-                                <div>
-                                    <div class="legend-title">松懈型管制</div>
-                                    <div class="legend-desc">宽松审核，低开放度</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tech-card">
-            <h3 class="tech-card-title">
-                <i class="bi bi-radar-chart neon-glow" style="color: var(--tech-accent-pink);"></i>
-                各模型维度平均分对比
-            </h3>
-            <div id="dimension-bar-chart" class="tech-chart-container"></div>
-        </div>
-        {% endif %}
-
         <!-- 详细数据表 -->
         <div class="tech-card">
             <h3 class="tech-card-title">
@@ -323,7 +258,7 @@
                             <th>总得分</th>
                             <th>响应率</th>
                             {% for dim in l1_dimensions %}
-                            <th style="text-align: center;">{{ dim.name }}</th>
+                            <th style="text-align: center;">{{ dim.name }}排名</th>
                             {% endfor %}
                         </tr>
                     </thead>
@@ -355,8 +290,8 @@
                             <td style="text-align: center;">
                                 {% if item.ranks.get(dim.id, '-') != '-' %}
                                     <span class="data-label">
-                                        <span class="data-label-icon" style="background: {% if item.ranks[dim.id] == 1 %}var(--tech-accent-green){% elif item.ranks[dim.id] <= 3 %}var(--tech-accent-yellow){% else %}var(--tech-accent-cyan){% endif %};"></span>
-                                        {{ item.ranks[dim.id] }}
+                                        <!-- <span class="data-label-icon" style="background: {% if item.ranks[dim.id] == 1 %}var(--tech-accent-green){% elif item.ranks[dim.id] <= 3 %}var(--tech-accent-yellow){% else %}var(--tech-accent-cyan){% endif %};"></span> -->
+                                        <span style="font-weight: 600; color: var(--tech-accent-cyan);">{{ item.ranks[dim.id] }}</span>
                                     </span>
                                 {% else %}
                                     <span style="color: var(--tech-text-muted);">-</span>
@@ -376,6 +311,72 @@
                 </table>
             </div>
         </div>
+
+        <!-- 图表区域 -->
+        <div class="tech-card">
+            <h3 class="tech-card-title">
+                <i class="bi bi-bar-chart-line neon-glow" style="color: var(--tech-accent-cyan);"></i>
+                模型综合性能分析
+            </h3>
+            <div id="overall-bar-chart" class="tech-chart-container"></div>
+        </div>
+
+        <div class="tech-card">
+            <h3 class="tech-card-title">
+                <i class="bi bi-grid-3x3-gap neon-glow" style="color: var(--tech-accent-purple);"></i>
+                安全管制策略象限分析
+            </h3>
+            <div class="row">
+                <div class="col-lg-8">
+                    <div id="quadrant-chart" class="tech-chart-container"></div>
+                </div>
+                <div class="col-lg-4">
+                    <div style="padding: 1rem;">
+                        <h5 style="color: var(--tech-text-primary); margin-bottom: 1rem;">象限说明</h5>
+                        <div class="quadrant-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-cyan);"></div>
+                                <div>
+                                    <div class="legend-title">稳健型管制</div>
+                                    <div class="legend-desc">代表模型内容审核严格、回复开放性低。</div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-yellow);"></div>
+                                <div>
+                                    <div class="legend-title">粗放型管制</div>
+                                    <div class="legend-desc">代表模型内容审核宽松、回复开放性高;</div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-green);"></div>
+                                <div>
+                                    <div class="legend-title">精细化管制</div>
+                                    <div class="legend-desc">代表模型内容审核严格、回复开放性高;</div>
+                                </div>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--tech-accent-pink);"></div>
+                                <div>
+                                    <div class="legend-title">松懈型管制</div>
+                                    <div class="legend-desc">代表模型内容审核宽松、回复开放性低;</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tech-card">
+            <h3 class="tech-card-title">
+                <i class="bi bi-radar-chart neon-glow" style="color: var(--tech-accent-pink);"></i>
+                各模型维度平均分对比
+            </h3>
+            <div id="dimension-bar-chart" class="tech-chart-container"></div>
+        </div>
+        {% endif %}
+
     </div>
 
     <!-- 更新按钮 -->
@@ -565,7 +566,7 @@
                         name: '响应率 (%)',
                         nameLocation: 'middle',
                         nameGap: 30,
-                        min: 85,
+                        min: 80,
                         max: 100,
                         splitLine: {
                             show: false
@@ -663,10 +664,18 @@
                             },
                             label: {
                                 show: true,
+                                formatter: function(params) {
+                                    return params.data[2];
+                                },
                                 position: 'top',
-                                formatter: '{@[2]}',
-                                fontSize: 11
-                            }
+                                fontSize: 12,
+                                fontWeight: 'bold',
+                                color: techTheme.textStyle.color,      // 添加这一行，使用主题的文本颜色
+                                textBorderColor: 'transparent',        // 修改：从白色描边改为透明
+                                textBorderWidth: 0,                    // 修改：从2改为0
+                                textShadowColor: 'transparent',        // 添加这一行，去除文字阴影
+                                textShadowBlur: 0                      // 添加这一行，确保阴影模糊度为0
+                            },
                         }
                     ]
                 };
@@ -704,7 +713,7 @@
                             return scoreData ? parseFloat(scoreData.avg.toFixed(2)) : 0;
                         }),
                         itemStyle: {
-                            color: techTheme.color[index % techTheme.color.length]
+                            color: techTheme.color[[0, 2, 4, 6, 8, 1, 3, 5, 7, 9][index % 10]]
                         }
                     };
                 });

@@ -73,6 +73,7 @@ def edit_model(model_id):
             form.api_keys.append_entry(key)
         if not form.api_keys.entries:
             form.api_keys.append_entry()
+            
     if form.validate_on_submit():
         logger.info(f"Attempting to update model ID: {model_id}.")
         api_keys = [key.data for key in form.api_keys if key.data.strip()]
@@ -82,9 +83,12 @@ def edit_model(model_id):
             logger.warning(f"Edit model ID {model_id} failed: No valid API keys provided.")
             return render_template('edit_model.html', form=form, action='编辑', llm=llm, icons=icons)
         
-        # 使用 form.icon.data 并添加日志
+        # --- START: 修正逻辑 ---
         file_data = form.icon.data
-        if file_data:
+        
+        # 核心修正：检查 file_data 是否是文件对象（通过检查它是否有 filename 属性）
+        # 并且确保文件名不为空，以防止空的上传字段。
+        if file_data and hasattr(file_data, 'filename') and file_data.filename:
             logger.info(f"New icon file detected for model ID {model_id}: {file_data.filename}")
             try:
                 # 删除旧图标 (可选，但推荐)
@@ -103,7 +107,9 @@ def edit_model(model_id):
                 flash(f'图标上传失败: {e}', 'danger')
                 return render_template('edit_model.html', form=form, action='编辑', llm=llm, icons=icons)
         else:
-            logger.info(f"No new icon file provided for model ID {model_id}.")
+            # 如果没有新文件上传，则不执行任何图标操作，保留旧图标
+            logger.info(f"No new icon file provided for model ID {model_id}. Keeping existing icon: {llm.icon}")
+        # --- END: 修正逻辑 ---
 
         llm.name = form.name.data
         llm.model = form.model.data
@@ -120,7 +126,6 @@ def edit_model(model_id):
         return redirect(url_for('models.model_management'))
     
     return render_template('edit_model.html', form=form, action='编辑', llm=llm, icons=icons)
-
 
 
 @models_bp.route('/delete/<int:model_id>', methods=['POST'])

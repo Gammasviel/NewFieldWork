@@ -276,7 +276,7 @@
                                 </a>
                             </td>
                             <td>
-                                <span style="font-weight: 600; color: var(--tech-accent-cyan);">{{ "%.2f" | format(item.avg_score) }}</span>
+                                <span style="font-weight: 600; color: var(--tech-accent-cyan);">{{ "%.2f%%" | format(item.avg_score / 5 * 100) }}</span>
                                 <div class="score-bar">
                                     <div class="score-fill" style="width: {{ (item.avg_score / 5 * 100) }}%"></div>
                                 </div>
@@ -428,6 +428,13 @@
                         trigger: 'axis',
                         axisPointer: {
                             type: 'cross'
+                        },
+                        formatter: function (params) {
+                            let res = params[0].name + '<br/>';
+                            params.forEach(function (item) {
+                                res += item.marker + ' ' + item.seriesName + ' : ' + item.value.toFixed(2) + '%<br/>';
+                            });
+                            return res;
                         }
                     },
                     legend: {
@@ -453,12 +460,12 @@
                     yAxis: [
                         {
                             type: 'value',
-                            name: '得分',
+                            name: '得分 (%)',
                             min: 0,
-                            max: 5,
+                            max: 100,
                             position: 'left',
                             axisLabel: {
-                                formatter: '{value}'
+                                formatter: '{value}%'
                             }
                         },
                         {
@@ -480,7 +487,7 @@
                             name: '总得分',
                             type: 'bar',
                             data: leaderboardData.map(item => ({
-                                value: parseFloat(item.avg_score.toFixed(2)),
+                                value: parseFloat(item.avg_score / 5 * 100),
                                 itemStyle: {
                                     color: {
                                         type: 'linear',
@@ -557,7 +564,7 @@
                     tooltip: {
                         formatter: params => {
                             if (params.componentType === 'series' && params.seriesType === 'scatter') {
-                                return `${params.value[2]}<br/>响应率: ${params.value[0].toFixed(2)}%<br/>总得分: ${params.value[1].toFixed(2)}`;
+                                return `${params.value[2]}<br/>响应率: ${params.value[0].toFixed(2)}%<br/>总得分: ${params.value[1].toFixed(2)}%`;
                             }
                             return '';
                         }
@@ -573,11 +580,14 @@
                         }
                     },
                     yAxis: {
-                        name: '总得分',
+                        name: '总得分 (%)',
                         nameLocation: 'middle',
                         nameGap: 40,
-                        min: 2,
-                        max: 4,
+                        min: 40,
+                        max: 80,
+                        axisLabel: {
+                            formatter: '{value}%'
+                        },
                         splitLine: {
                             show: false
                         }
@@ -596,7 +606,7 @@
                                 },
                                 data: [
                                     { xAxis: rateThreshold },
-                                    { yAxis: scoreThreshold }
+                                    { yAxis: scoreThreshold * 20 }
                                 ],
                                 label: {
                                     show: false
@@ -627,10 +637,10 @@
                                 };
                             },
                             data: [
-                                {value: [rateThreshold, scoreThreshold, 100, 4], itemStyle: {color: techTheme.color[3] + '20'}},
-                                {value: [85, scoreThreshold, rateThreshold, 4], itemStyle: {color: techTheme.color[0] + '20'}},
-                                {value: [rateThreshold, 2, 100, scoreThreshold], itemStyle: {color: techTheme.color[4] + '20'}},
-                                {value: [85, 2, rateThreshold, scoreThreshold], itemStyle: {color: techTheme.color[2] + '20'}}
+                                {value: [rateThreshold, scoreThreshold * 20, 100, 80], itemStyle: {color: techTheme.color[3] + '20'}},
+                                {value: [85, scoreThreshold * 20, rateThreshold, 80], itemStyle: {color: techTheme.color[0] + '20'}},
+                                {value: [rateThreshold, 40, 100, scoreThreshold * 20], itemStyle: {color: techTheme.color[4] + '20'}},
+                                {value: [85, 40, rateThreshold, scoreThreshold * 20], itemStyle: {color: techTheme.color[2] + '20'}}
                             ]
                         },
                         // 散点数据
@@ -640,15 +650,15 @@
                             symbolSize: 20,
                             data: leaderboardData.map(item => [
                                 item.response_rate,
-                                item.avg_score,
+                                item.avg_score * 20,
                                 item.name
                             ]),
                             itemStyle: {
                                 color: params => {
                                     const [x, y] = params.value;
-                                    if (x >= rateThreshold && y >= scoreThreshold) return techTheme.color[3];
-                                    if (x < rateThreshold && y >= scoreThreshold) return techTheme.color[0];
-                                    if (x >= rateThreshold && y < scoreThreshold) return techTheme.color[4];
+                                    if (x >= rateThreshold && y >= scoreThreshold * 20) return techTheme.color[3];
+                                    if (x < rateThreshold && y >= scoreThreshold * 20) return techTheme.color[0];
+                                    if (x >= rateThreshold && y < scoreThreshold * 20) return techTheme.color[4];
                                     return techTheme.color[2];
                                 },
                                 borderColor: '#fff',
@@ -710,7 +720,7 @@
                         },
                         data: allModels.map(model => {
                             const scoreData = model.dim_scores[dim.id];
-                            return scoreData ? parseFloat(scoreData.avg.toFixed(2)) : 0;
+                            return scoreData ? parseFloat(scoreData.avg * 20) : 0;
                         }),
                         itemStyle: {
                             color: techTheme.color[[0, 2, 4, 6, 8, 1, 3, 5, 7, 9][index % 10]]
@@ -723,6 +733,13 @@
                         trigger: 'axis',
                         axisPointer: {
                             type: 'shadow'
+                        },
+                        formatter: function (params) {
+                            let res = params[0].name + '<br/>';
+                            params.forEach(function (item) {
+                                res += item.marker + ' ' + item.seriesName + ' : ' + item.value.toFixed(2) + '%<br/>';
+                            });
+                            return res;
                         }
                     },
                     legend: {
@@ -746,9 +763,12 @@
                     },
                     yAxis: {
                         type: 'value',
-                        name: '平均得分',
+                        name: '平均得分 (%)',
                         min: 0,
-                        max: 5
+                        max: 100,
+                        axisLabel: {
+                            formatter: '{value}%'
+                        }
                     },
                     series: seriesData
                 };

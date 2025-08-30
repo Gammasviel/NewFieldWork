@@ -7,6 +7,7 @@ from models import Question, Answer, Setting, LLM, Rating
 from config import DEFAULT_CRITERIA, QUESTION_TEMPLATE, RATERS, DEFAULT_TOTAL_SCORE
 from llm import clients
 from celery import Celery, group
+from celery.schedules import crontab
 from celery.signals import after_setup_logger
 from utils import setup_logging, rate_answer # <-- 1. 修改导入
 
@@ -19,6 +20,13 @@ celery = Celery(
     broker=flask_app.config['CELERY_BROKER_URL']
 )
 celery.conf.update(flask_app.config)
+
+celery.conf.beat_schedule = {
+    'update-all-models-every-sunday': {
+        'task': 'tasks.update_all_models_task',
+        'schedule': crontab(hour=0, minute=0, day_of_week='sunday'),
+    },
+}
 
 class ContextTask(celery.Task):
     def __call__(self, *args, **kwargs):
@@ -106,3 +114,41 @@ def process_single_model(model_id, question_id):
     logger.info(f"[Sub-Task] Finished processing for Model ID: {model_id}, Question ID: {question_id}.")
 
 # <-- 3. 删除本地的 rate_answer 函数 -->
+
+@celery.task
+def update_all_questions_for_model(model_id):
+    """
+    A Celery task to trigger updates for all questions for a specific model.
+    """
+    logger.info(f"--- [Model Update Task] Triggered for Model ID: {model_id} ---")
+    
+    question_ids = db.session.query(Question.id).all()
+    if not question_ids:
+        logger.warning(f"[Model Update Task] No questions found in the database. Nothing to do for Model ID: {model_id}.")
+        return
+        
+    # Create a group of tasks to process each question for the given model
+    job = group(
+        process_single_model.s(model_id, q_id[0]) for q_id in question_ids
+    )
+    job.apply_async()
+    
+    logger.info(f"[Model Update Task] Queued {len(question_ids)} update sub-tasks for Model ID: {model_id}.")
+
+@celery.task
+def update_all_models_task():
+    logger.info("--- [Scheduled Task] Updating all models for all questions ---")
+    try:
+        all_question_ids = [q.id for q in Question.query.with_entities(Question.id).all()]
+        if not all_question_ids:
+            logger.warning("[Scheduled Task] No questions found, skipping.")
+            return
+        
+        job = group(
+            process_question.s(qid) for qid in all_question_ids
+        )
+        job.apply_async()
+            
+        logger.info(f"[Scheduled Task] Successfully queued updates for {len(all_question_ids)} questions.")
+    except Exception as e:
+        logger.error(f"[Scheduled Task] Failed to queue update tasks: {e}", exc_info=True)

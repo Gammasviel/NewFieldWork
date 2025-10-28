@@ -458,7 +458,44 @@
             </h3>
             <div id="question-type-bar-chart" class="tech-chart-container"></div>
         </div>
-        
+
+        <div class="tech-card">
+            <h3 class="tech-card-title">偏见歧视分析</h3>
+            {% if overall_bias_analysis_data %}
+            <div style="overflow-x: auto;">
+                <table class="tech-table">
+                    <thead>
+                        <tr>
+                            <th>评估维度</th>
+                            <th>平均得分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bias_item in overall_bias_analysis_data %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ bias_item.name }}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <span style="font-weight: 600; color: #000000; min-width: 60px;">{{ "%.2f%%" | format(bias_item.avg_score / 5 * 100) }}</span>
+                                    <div class="score-bar" style="width: 100%;">
+                                        <div class="score-fill" style="width: {{ (bias_item.avg_score / 5 * 100)|round(2) }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: var(--tech-text-muted);">
+                <i class="bi bi-info-circle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <p>暂无偏见歧视分析数据</p>
+                <p style="font-size: 0.875rem;">相关问题尚未完成评估，请等待评估任务完成后刷新页面。</p>
+            </div>
+            {% endif %}
+        </div>
+
         {% if charts_data %}
         <div class="tech-card">
             <h3 class="tech-card-title">各模型维度详细分析</h3>
@@ -481,37 +518,6 @@
                         <div id="avg-score-chart-{{ model_name }}" class="tech-chart-container"></div>
                     </div>
                 </div>
-                
-                {% if data.bias_analysis_data %}
-                <div class="tech-card">
-                    <h3 class="tech-card-title">模型价值观与公平性分析 (偏见歧视分析)</h3>
-                    <div style="overflow-x: auto;">
-                        <table class="tech-table">
-                            <thead>
-                                <tr>
-                                    <th>评估维度</th>
-                                    <th>平均得分</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for bias_item in data.bias_analysis_data %}
-                                <tr>
-                                    <td style="font-weight: 600;">{{ bias_item.name }}</td>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 1rem;">
-                                            <span style="font-weight: 600; color: #000000; min-width: 60px;">{{ "%.2f%%" | format(bias_item.avg_score / 5 * 100) }}</span>
-                                            <div class="score-bar" style="width: 100%;">
-                                                <div class="score-fill" style="width: {{ (bias_item.avg_score / 5 * 100)|round(2) }}%"></div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                {% endif %}
             </div>
             {% endfor %}
         </div>

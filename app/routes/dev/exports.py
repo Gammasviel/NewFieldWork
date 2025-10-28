@@ -53,3 +53,24 @@ def export_history_report(history_id):
         logger.error(f"Error exporting history report {history_id}: {e}", exc_info=True)
         flash('An error occurred while exporting the report.', 'danger')
         return redirect(url_for('dev_history.dev_history'))
+
+@exports_bp.route('/charts', methods=['POST'])
+def export_all_charts():
+    """
+    Triggers the export of all charts as a background task.
+    """
+    logger.info("Export all charts requested.")
+    try:
+        from app.core.tasks import export_charts_task
+
+        # 触发后台任务
+        task = export_charts_task.delay()
+
+        flash('图表导出任务已加入后台队列，请稍后查看 instance/exports/imgs 目录。', 'success')
+        logger.info(f"Chart export task queued with ID: {task.id}")
+
+    except Exception as e:
+        logger.error(f"Error queuing chart export task: {e}", exc_info=True)
+        flash('导出图表任务加入队列时发生错误，请检查 Celery 服务是否正常。', 'danger')
+
+    return redirect(url_for('index.index'))

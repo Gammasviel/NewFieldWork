@@ -289,15 +289,106 @@ import subprocess
 def convert_markdown_to_pdf(markdown_path: str, pdf_path: str) -> bool:
     """Converts a Markdown file to a PDF using pandoc."""
     logger = logging.getLogger('utils.convert_markdown_to_pdf')
+
+    # 创建临时的 Lua 过滤器文件
+    import tempfile
+    import os
+
+    # Lua 过滤器：移除图表标题中的冒号和 "Figure" 前缀
+    lua_filter_content = '''
+function Figure(el)
+    -- 移除图表标题中的冒号
+    if el.caption and el.caption.long then
+        local new_caption = {}
+        for i, item in ipairs(el.caption.long) do
+            if item.t == "Str" then
+                -- 移除冒号及其后的空格
+                if item.text == ":" or item.text == ": " then
+                    -- 跳过冒号
+                elseif item.text:match("^:%s*") then
+                    -- 如果冒号和文字在一起，只保留文字部分
+                    item.text = item.text:gsub("^:%s*", "")
+                    table.insert(new_caption, item)
+                else
+                    table.insert(new_caption, item)
+                end
+            else
+                table.insert(new_caption, item)
+            end
+        end
+        el.caption.long = new_caption
+    end
+    return el
+end
+'''
+
+    # 创建 LaTeX 头文件，用于自定义格式
+    latex_header_content = r'''
+\usepackage{float}
+\usepackage{caption}
+
+% 强制图表在当前位置显示，不浮动
+\floatplacement{figure}{H}
+\floatplacement{table}{H}
+
+% 设置图表标题格式：图1 而不是 Figure 1:
+\DeclareCaptionLabelSeparator{none}{}
+\captionsetup[figure]{
+    labelformat=simple,
+    labelsep=none,
+    name=图
+}
+\captionsetup[table]{
+    labelformat=simple,
+    labelsep=none,
+    name=表
+}
+
+% 标题居中
+\usepackage{sectsty}
+\allsectionsfont{\centering}
+'''
+
     try:
-        subprocess.run(
-            ['pandoc', '-f', 'markdown+hard_line_breaks', markdown_path, '-o', pdf_path, '--pdf-engine=xelatex', '-V', 'mainfont=Noto Sans CJK SC', '-V', 'CJKmainfont=Noto Sans CJK SC', '-V', 'geometry:top=2cm, left=2cm, right=2cm, bottom=2cm'],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        logger.info(f"Successfully converted {markdown_path} to {pdf_path}")
-        return True
+        # 创建临时 Lua 过滤器文件
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.lua', delete=False, encoding='utf-8') as f:
+            f.write(lua_filter_content)
+            lua_filter_path = f.name
+
+        # 创建临时 LaTeX 头文件
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.tex', delete=False, encoding='utf-8') as f:
+            f.write(latex_header_content)
+            latex_header_path = f.name
+
+        try:
+            subprocess.run(
+                [
+                    'pandoc',
+                    '-f', 'markdown+hard_line_breaks',
+                    markdown_path,
+                    '-o', pdf_path,
+                    '--pdf-engine=xelatex',
+                    '-V', 'mainfont=Noto Sans CJK SC',
+                    '-V', 'CJKmainfont=Noto Sans CJK SC',
+                    '-V', 'geometry:top=2cm, left=2cm, right=2cm, bottom=2cm',
+                    # 包含自定义 LaTeX 头文件
+                    '-H', latex_header_path,
+                    # 使用 Lua 过滤器处理图表标题
+                    '--lua-filter', lua_filter_path
+                ],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            logger.info(f"Successfully converted {markdown_path} to {pdf_path}")
+            return True
+        finally:
+            # 清理临时文件
+            if os.path.exists(lua_filter_path):
+                os.unlink(lua_filter_path)
+            if os.path.exists(latex_header_path):
+                os.unlink(latex_header_path)
+
     except FileNotFoundError:
         logger.error("Pandoc not found. Please ensure pandoc is installed and in your PATH.")
         return False

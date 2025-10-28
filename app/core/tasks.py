@@ -206,44 +206,45 @@ def save_evaluation_history_task():
 def export_charts_task():
     """
     导出所有图表到exports/imgs文件夹的celery任务
-    
+
     功能说明：
     1. 创建exports/imgs文件夹（如果不存在）
     2. 导出公共榜单的所有综合图表
     3. 导出每个模型的详细分析图表（model_detail页面中的图表）
     4. 导出偏见歧视分析表格
-    
+
     如果安装了Playwright，将生成真实的图表截图
     否则创建占位符文件用于测试
     """
+    from app.config import EXPORTS_IMGS_DIR
+
     logger.info("Chart export task started.")
-    
+
     try:
-        imgs_dir = Path('./exports/imgs')
-        imgs_dir.mkdir(parents=True, exist_ok=True)
-        
+        EXPORTS_IMGS_DIR.mkdir(parents=True, exist_ok=True)
+
         rater_names = [rater for raters in RATERS.values() for rater in raters]
         models = LLM.query.filter(LLM.name.notin_(rater_names)).all()
-        
+
         if not models:
             logger.warning('No models found for chart export.')
             return {'success': False, 'message': '没有找到可导出的模型。', 'exported_count': 0}
-        
+
         leaderboard_result = generate_leaderboard_data()
         leaderboard_data = leaderboard_result['leaderboard']
         l1_dims = leaderboard_result['l1_dimensions']
-        
+
         timestamp = int(time.time())
-        
-        exported_count = export_all_charts(models, leaderboard_data, l1_dims, imgs_dir, timestamp)
-        
-        logger.info(f"Successfully exported {exported_count} charts to ./exports/imgs/")
+
+        exported_count = export_all_charts(models, leaderboard_data, l1_dims, EXPORTS_IMGS_DIR, timestamp)
+
+        logger.info(f"Successfully exported {exported_count} charts to {EXPORTS_IMGS_DIR}")
         return {
-            'success': True, 
-            'message': f'成功导出了 {exported_count} 个图表到 ./exports/imgs/ 文件夹。',
+            'success': True,
+            'message': f'成功导出了 {exported_count} 个图表到 {EXPORTS_IMGS_DIR} 文件夹。',
             'exported_count': exported_count
         }
-        
+
     except Exception as e:
         logger.error(f"Error exporting charts in celery task: {e}", exc_info=True)
         return {

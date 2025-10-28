@@ -241,7 +241,7 @@
                     <h1 class="time-title text-left mb-0">{{ history_record.timestamp.strftime('%Y年%m月%d日 %H:%M:%S') }}</h1>
                     <p class="time-subtitle text-left mb-0">历史评估记录快照 #{{ history_record.id }}</p>
                 </div>
-                <a href="{{ url_for('public_exports.export_report', history_id=history_record.id) }}" class="back-button">导出报告</a>
+                <a href="{{ url_for('public_exports.export_report_history', history_id=history_record.id) }}" class="back-button">导出报告</a>
             </div>
         </div>
     </header>

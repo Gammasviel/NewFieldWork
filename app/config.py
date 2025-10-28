@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///evaluation.db'
@@ -10,3 +11,10 @@ CELERY = {
 }
 
 UPLOADED_ICONS_DEST = 'static/uploads/icons'
+
+# Export paths configuration - using instance folder for user-generated content
+BASE_DIR = Path(__file__).resolve().parent.parent
+INSTANCE_DIR = BASE_DIR / 'instance'
+EXPORTS_DIR = INSTANCE_DIR / 'exports'
+EXPORTS_IMGS_DIR = EXPORTS_DIR / 'imgs'
+EXPORTS_REPORTS_DIR = EXPORTS_DIR / 'reports'

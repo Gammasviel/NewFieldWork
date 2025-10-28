@@ -256,8 +256,8 @@
 
         {% if history_records %}
         <div class="history-grid">
-            {% for group in history_records | groupby('date_for_grouping') %}
-                {% set day_records = group.list %}
+            {% for group in (history_records | groupby('date_for_grouping') | list | reverse) %}
+                {% set day_records = group.list | reverse | list %}
                 {% set multiple_records = day_records | length > 1 %}
                 
                 {% for record in day_records %}

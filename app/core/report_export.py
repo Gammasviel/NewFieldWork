@@ -9,6 +9,7 @@ from app.core.llm import clients
 from app.core.utils import generate_leaderboard_data, convert_markdown_to_pdf
 from app.models import EvaluationHistory
 from app.extensions import db
+from app.config import EXPORTS_IMGS_DIR, EXPORTS_REPORTS_DIR
 
 logger = logging.getLogger('report_export')
 
@@ -36,6 +37,7 @@ PROMPTS = [
 要注意输出内容，不要太多零散的点，要是完整的段落和平滑的过渡
 语言精炼且结论准确，且文字稳妥点，不要有太多评价，尤其是负面评价
 且要注意用语去AI化
+中文输出，一段话，一两句话即可，不需要输出分析过程，只需要最后给出的分析
 
 {data_template}""",
 
@@ -46,6 +48,7 @@ PROMPTS = [
 要注意输出内容，不要太多零散的点，要是完整的段落和平滑的过渡
 语言精炼且结论准确，且文字稳妥点，不要有太多评价，尤其是负面评价
 且要注意用语去AI化
+中文输出，一段话，一两句话即可，不需要输出分析过程，只需要最后给出的分析
 
 {data_template}""",
 
@@ -56,6 +59,7 @@ PROMPTS = [
 要注意输出内容，不要太多零散的点，要是完整的段落和平滑的过渡
 语言精炼且结论准确，且文字稳妥点，不要有太多评价，尤其是负面评价
 且要注意用语去AI化
+中文输出，一段话，一两句话即可，不需要输出分析过程，只需要最后给出的分析
 
 {data_template}"""
 ]
@@ -65,16 +69,15 @@ def get_image_base64(image_name: str) -> str:
     Encodes an image to base64. If the specified image does not exist,
     it falls back to the first available image starting with image_name.
     """
-    img_path = Path('./exports/imgs')
-    image_file = img_path / f"{image_name}.png"
+    image_file = EXPORTS_IMGS_DIR / f"{image_name}.png"
 
     if not image_file.exists():
         logger.warning(f"Image '{image_name}.png' not found. Falling back to a default image.")
         try:
-            fallback_file = sorted([img_f for img_f in os.listdir(img_path) if img_f.startswith(image_name)])[0]
-            image_file = img_path / fallback_file
+            fallback_file = sorted([img_f for img_f in os.listdir(EXPORTS_IMGS_DIR) if img_f.startswith(image_name)])[0]
+            image_file = EXPORTS_IMGS_DIR / fallback_file
         except IndexError:
-            logger.error("No fallback images found in 'exports/imgs'.")
+            logger.error(f"No fallback images found in '{EXPORTS_IMGS_DIR}'.")
             return ""
 
     with open(image_file, 'rb') as img:
@@ -138,8 +141,7 @@ def export_report(leaderboard_data: list = None, report_file_name: str = None, t
     Generates and exports a report by preparing data, generating LLM analysis,
     and rendering it into a markdown template.
     """
-    report_path = Path('./exports/reports')
-    report_path.mkdir(exist_ok=True, parents=True)
+    EXPORTS_REPORTS_DIR.mkdir(exist_ok=True, parents=True)
 
     if leaderboard_data is None:
         leaderboard_data, dimension_metadata = generate_leaderboard_data().values()
@@ -149,7 +151,7 @@ def export_report(leaderboard_data: list = None, report_file_name: str = None, t
     if report_file_name is None:
         report_file_name = f"Report {datetime.now().strftime('%Y-%m-%d %H-%M-%S')}.md"
 
-    report_file_path = report_path / report_file_name
+    report_file_path = EXPORTS_REPORTS_DIR / report_file_name
     
     if timestamp is None:
         timestamp = datetime.now()
@@ -190,6 +192,57 @@ def export_report(leaderboard_data: list = None, report_file_name: str = None, t
     logger.info(f"Report successfully exported to {report_file_path}")
     return str(report_file_path.resolve())
 
+def check_and_export_charts_if_needed():
+    """
+    检查图表是否存在，如果不存在则导出图表。
+    返回 True 表示图表已准备好，False 表示导出失败。
+    """
+    # 检查必需的图表文件是否存在
+    required_charts = [
+        'overall_bar_chart.png',
+        'quadrant_chart.png',
+        'dimension_bar_chart.png',
+        'question_type_bar_chart.png'
+    ]
+
+    charts_exist = all((EXPORTS_IMGS_DIR / chart).exists() for chart in required_charts)
+
+    if charts_exist:
+        logger.info("All required charts already exist, skipping chart export.")
+        return True
+
+    # 图表不存在，需要导出
+    logger.info("Required charts not found, exporting charts now...")
+    try:
+        from app.models import LLM
+        from app.core.constants import RATERS
+        from app.core.chart_export import export_all_charts
+        import time
+
+        EXPORTS_IMGS_DIR.mkdir(parents=True, exist_ok=True)
+
+        # 获取当前排行榜数据
+        current_data = generate_leaderboard_data()
+
+        rater_names = [rater for raters in RATERS.values() for rater in raters]
+        models = LLM.query.filter(LLM.name.notin_(rater_names)).all()
+
+        timestamp = int(time.time())
+        export_all_charts(
+            models=models,
+            leaderboard_data=current_data['leaderboard'],
+            l1_dims=current_data['l1_dimensions'],
+            imgs_dir=EXPORTS_IMGS_DIR,
+            timestamp=timestamp,
+            export_timestamp=False  # 使用固定文件名
+        )
+
+        logger.info("Charts exported successfully for history report.")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to export charts: {e}", exc_info=True)
+        return False
+
 def get_or_generate_report(history_id):
     history = EvaluationHistory.query.get_or_404(history_id)
 
@@ -208,7 +261,13 @@ def get_or_generate_report(history_id):
             logger.error(f"Failed to convert markdown to PDF for history {history_id}.")
             return None
 
-    logger.info(f"No report found for history {history_id}. Generating new report.")
+    # 导出历史记录报告前，检查并导出图表（如果需要）
+    logger.info(f"No report found for history {history_id}. Checking charts availability...")
+    if not check_and_export_charts_if_needed():
+        logger.error(f"Failed to ensure charts are available for history {history_id}.")
+        return None
+
+    logger.info(f"Generating new report for history {history_id}.")
     markdown_path_str = export_report(
         leaderboard_data=[history.evaluation_data, history.dimensions],
         report_file_name=f"Report-{history.id}.md",

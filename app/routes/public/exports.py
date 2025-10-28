@@ -3,6 +3,7 @@ from app.models import EvaluationHistory, Question
 from app.core.report_export import export_report
 from app.core.utils import convert_markdown_to_pdf, generate_leaderboard_data
 from app.extensions import db
+from app.config import EXPORTS_IMGS_DIR
 from pathlib import Path
 
 public_exports_bp = Blueprint('public_exports', __name__, url_prefix='/public')
@@ -30,44 +31,36 @@ def export_report_history(history_id):
 @public_exports_bp.route('/export/leaderboard')
 def export_leaderboard():
     """
-    Export the current leaderboard report by always generating a new one.
+    Export the latest history record report.
+    Uses the same logic as history export: if PDF exists, use it;
+    if not, convert from markdown; if no markdown, generate new report.
     """
     try:
-        current_data = generate_leaderboard_data()
-        total_questions = Question.query.count()
+        from app.core.report_export import get_or_generate_report
 
-        history_record = EvaluationHistory(
-            dimensions=current_data['l1_dimensions'],
-            evaluation_data=current_data['leaderboard'],
-            extra_info={
-                'total_models': len(current_data['leaderboard']),
-                'total_dimensions': len(current_data['l1_dimensions']),
-                'total_questions': total_questions,
-                'manual_save': True,
-                'source': 'public_export'
-            }
-        )
-        db.session.add(history_record)
-        db.session.commit()
+        # 获取最新的历史记录
+        latest_history = EvaluationHistory.query.order_by(EvaluationHistory.timestamp.desc()).first()
 
-        markdown_path_str = export_report(
-            leaderboard_data=[history_record.evaluation_data, history_record.dimensions],
-            report_file_name=f"Report-{history_record.id}.md",
-            timestamp=history_record.timestamp
-        )
-        history_record.markdown_report_path = markdown_path_str
-        db.session.commit()
+        if not latest_history:
+            current_app.logger.warning("No history records found, cannot export report")
+            flash('没有找到历史记录，无法导出报告。', 'danger')
+            return redirect(url_for('public_leaderboard.display_public_leaderboard'))
 
-        pdf_path = Path(markdown_path_str).with_suffix('.pdf')
-        if convert_markdown_to_pdf(markdown_path_str, str(pdf_path)):
-            history_record.pdf_report_path = str(pdf_path)
-            db.session.commit()
-            return send_file(str(pdf_path), as_attachment=True)
+        current_app.logger.info(f"Exporting report for latest history record (ID: {latest_history.id})")
+
+        # 使用与历史记录导出相同的逻辑
+        pdf_path = get_or_generate_report(latest_history.id)
+
+        if pdf_path:
+            # 使用历史记录的时间戳作为文件名
+            timestamp_str = latest_history.timestamp.strftime('%Y%m%d_%H%M%S')
+            download_name = f"Report-{timestamp_str}.pdf"
+            return send_file(pdf_path, as_attachment=True, download_name=download_name)
         else:
-            flash('Failed to convert report to PDF.', 'danger')
+            flash('生成 PDF 报告失败。', 'danger')
             return redirect(url_for('public_leaderboard.display_public_leaderboard'))
 
     except Exception as e:
         current_app.logger.error(f"Error exporting leaderboard report: {e}", exc_info=True)
-        flash("Error generating report.", 'danger')
+        flash("导出报告时发生错误。", 'danger')
         return redirect(url_for('public_leaderboard.display_public_leaderboard'))

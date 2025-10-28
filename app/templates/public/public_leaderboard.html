@@ -115,13 +115,6 @@
             position: relative;
         }
         
-        .update-button {
-            position: fixed;
-            bottom: 5.5rem;
-            right: 2rem;
-            z-index: 999;
-        }
-        
         .quadrant-legend {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -526,15 +519,6 @@
 
         {% endif %}
 
-    </div>
-
-    <div class="update-button">
-        <form method="POST" action="{{ url_for('public_leaderboard.update_all_models') }}" onsubmit="return confirm('确定要重新评估所有模型吗？这将是一个耗时的操作。');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button type="submit" class="tech-btn">
-                <i class="bi bi-arrow-repeat"></i> 更新全部模型
-            </button>
-        </form>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>

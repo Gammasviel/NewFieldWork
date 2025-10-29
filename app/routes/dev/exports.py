@@ -63,7 +63,6 @@ def export_all_charts():
     try:
         from app.core.tasks import export_charts_task
 
-        # 触发后台任务
         task = export_charts_task.delay()
 
         flash('图表导出任务已加入后台队列，请稍后查看 instance/exports/imgs 目录。', 'success')

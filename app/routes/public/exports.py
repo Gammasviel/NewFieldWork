@@ -38,7 +38,6 @@ def export_leaderboard():
     try:
         from app.core.report_export import get_or_generate_report
 
-        # 获取最新的历史记录
         latest_history = EvaluationHistory.query.order_by(EvaluationHistory.timestamp.desc()).first()
 
         if not latest_history:
@@ -48,11 +47,9 @@ def export_leaderboard():
 
         current_app.logger.info(f"Exporting report for latest history record (ID: {latest_history.id})")
 
-        # 使用与历史记录导出相同的逻辑
         pdf_path = get_or_generate_report(latest_history.id)
 
         if pdf_path:
-            # 使用历史记录的时间戳作为文件名
             timestamp_str = latest_history.timestamp.strftime('%Y%m%d_%H%M%S')
             download_name = f"Report-{timestamp_str}.pdf"
             return send_file(pdf_path, as_attachment=True, download_name=download_name)

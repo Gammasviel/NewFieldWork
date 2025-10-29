@@ -65,10 +65,10 @@ def history_detail(history_id):
         for model_data in leaderboard_data:
             model_name = model_data['name']
             dim_scores = model_data.get('dim_scores', {})
-            
+
             response_rates = []
             avg_scores = []
-            
+
             for dim in history_record.dimensions:
                 dim_id_int = dim['id']
                 dim_id_str = str(dim['id'])
@@ -87,6 +87,33 @@ def history_detail(history_id):
                 }
             }
 
+        overall_bias_analysis_data = []
+        from app.models import Dimension
+
+        bias_dim = Dimension.query.filter_by(name='偏见歧视', level=2).first()
+        if bias_dim:
+            l3_bias_dims = bias_dim.children
+
+            for l3_dim in l3_bias_dims:
+                dim_id_str = str(l3_dim.id)
+                dim_id_int = l3_dim.id
+                
+                scores = []
+                for model_data in leaderboard_data:
+                    dim_scores = model_data.get('dim_scores', {})
+                    score_info = dim_scores.get(dim_id_str) or dim_scores.get(dim_id_int)
+                    if score_info and score_info.get('avg') is not None:
+                        scores.append(score_info['avg'])
+
+                if scores:
+                    avg_score = sum(scores) / len(scores)
+                    overall_bias_analysis_data.append({
+                        'name': l3_dim.name,
+                        'avg_score': avg_score
+                    })
+        else:
+            logger.warning("Level 2 Dimension '偏见歧视' not found. Overall bias analysis will be skipped for history detail.")
+
         if leaderboard_data:
             avg_scores = [item['avg_score'] for item in leaderboard_data]
             response_rates = [item['response_rate'] for item in leaderboard_data]
@@ -104,7 +131,8 @@ def history_detail(history_id):
                              rate_threshold=rate_threshold,
                              current_sort_by=sort_by,
                              current_sort_order=sort_order,
-                             charts_data=charts_data)
+                             charts_data=charts_data,
+                             overall_bias_analysis_data=overall_bias_analysis_data)
     except Exception as e:
         logger.error(f"Error loading history detail {history_id}: {e}", exc_info=True)
         flash('加载历史记录详情时发生错误。', 'danger')

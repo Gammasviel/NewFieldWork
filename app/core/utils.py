@@ -290,11 +290,9 @@ def convert_markdown_to_pdf(markdown_path: str, pdf_path: str) -> bool:
     """Converts a Markdown file to a PDF using pandoc."""
     logger = logging.getLogger('utils.convert_markdown_to_pdf')
 
-    # 创建临时的 Lua 过滤器文件
     import tempfile
     import os
 
-    # Lua 过滤器：移除图表标题中的冒号和 "Figure" 前缀
     lua_filter_content = '''
 function Figure(el)
     -- 移除图表标题中的冒号
@@ -322,7 +320,6 @@ function Figure(el)
 end
 '''
 
-    # 创建 LaTeX 头文件，用于自定义格式
     latex_header_content = r'''
 \usepackage{float}
 \usepackage{caption}
@@ -350,12 +347,10 @@ end
 '''
 
     try:
-        # 创建临时 Lua 过滤器文件
         with tempfile.NamedTemporaryFile(mode='w', suffix='.lua', delete=False, encoding='utf-8') as f:
             f.write(lua_filter_content)
             lua_filter_path = f.name
 
-        # 创建临时 LaTeX 头文件
         with tempfile.NamedTemporaryFile(mode='w', suffix='.tex', delete=False, encoding='utf-8') as f:
             f.write(latex_header_content)
             latex_header_path = f.name
@@ -371,9 +366,7 @@ end
                     '-V', 'mainfont=Noto Sans CJK SC',
                     '-V', 'CJKmainfont=Noto Sans CJK SC',
                     '-V', 'geometry:top=2cm, left=2cm, right=2cm, bottom=2cm',
-                    # 包含自定义 LaTeX 头文件
                     '-H', latex_header_path,
-                    # 使用 Lua 过滤器处理图表标题
                     '--lua-filter', lua_filter_path
                 ],
                 check=True,
@@ -383,7 +376,6 @@ end
             logger.info(f"Successfully converted {markdown_path} to {pdf_path}")
             return True
         finally:
-            # 清理临时文件
             if os.path.exists(lua_filter_path):
                 os.unlink(lua_filter_path)
             if os.path.exists(latex_header_path):

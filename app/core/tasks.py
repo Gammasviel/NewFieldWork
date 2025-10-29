@@ -285,7 +285,6 @@ def generate_and_save_reports(history_id):
             logger.error(f"[Report Generation Task] Failed: Could not find History with ID {history_id}.")
             return
 
-        # Generate Markdown Report
         markdown_path_str = export_report(
             leaderboard_data=[history.evaluation_data, history.dimensions],
             report_file_name=f"Report-{history.id}.md",
@@ -295,7 +294,6 @@ def generate_and_save_reports(history_id):
         db.session.commit()
         logger.info(f"[Report Generation Task] Markdown report generated and path saved for History ID: {history_id}.")
 
-        # Convert to PDF
         pdf_path = Path(markdown_path_str).with_suffix('.pdf')
         if convert_markdown_to_pdf(markdown_path_str, str(pdf_path)):
             history.pdf_report_path = str(pdf_path)

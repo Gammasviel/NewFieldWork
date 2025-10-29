@@ -12,7 +12,6 @@ CELERY = {
 
 UPLOADED_ICONS_DEST = 'static/uploads/icons'
 
-# Export paths configuration - using instance folder for user-generated content
 BASE_DIR = Path(__file__).resolve().parent.parent
 INSTANCE_DIR = BASE_DIR / 'instance'
 EXPORTS_DIR = INSTANCE_DIR / 'exports'

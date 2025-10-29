@@ -197,7 +197,6 @@ def check_and_export_charts_if_needed():
     检查图表是否存在，如果不存在则导出图表。
     返回 True 表示图表已准备好，False 表示导出失败。
     """
-    # 检查必需的图表文件是否存在
     required_charts = [
         'overall_bar_chart.png',
         'quadrant_chart.png',
@@ -211,7 +210,6 @@ def check_and_export_charts_if_needed():
         logger.info("All required charts already exist, skipping chart export.")
         return True
 
-    # 图表不存在，需要导出
     logger.info("Required charts not found, exporting charts now...")
     try:
         from app.models import LLM
@@ -221,7 +219,6 @@ def check_and_export_charts_if_needed():
 
         EXPORTS_IMGS_DIR.mkdir(parents=True, exist_ok=True)
 
-        # 获取当前排行榜数据
         current_data = generate_leaderboard_data()
 
         rater_names = [rater for raters in RATERS.values() for rater in raters]
@@ -234,7 +231,7 @@ def check_and_export_charts_if_needed():
             l1_dims=current_data['l1_dimensions'],
             imgs_dir=EXPORTS_IMGS_DIR,
             timestamp=timestamp,
-            export_timestamp=False  # 使用固定文件名
+            export_timestamp=False
         )
 
         logger.info("Charts exported successfully for history report.")
@@ -261,7 +258,6 @@ def get_or_generate_report(history_id):
             logger.error(f"Failed to convert markdown to PDF for history {history_id}.")
             return None
 
-    # 导出历史记录报告前，检查并导出图表（如果需要）
     logger.info(f"No report found for history {history_id}. Checking charts availability...")
     if not check_and_export_charts_if_needed():
         logger.error(f"Failed to ensure charts are available for history {history_id}.")
